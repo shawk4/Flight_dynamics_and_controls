@@ -88,18 +88,40 @@ class DrawMav:
         """
         ##### TODO #####
         # define MAV body parameters
-        #fuse_h = 
+        fuse_H = .1
+        fuse_W = .15
+        fuse_L1 = .25
+        fuse_L2 = .1
+        fuse_L3 = .75
+        wing_L = .25
+        wing_W = 1
+        tail_H = .15
+        tail_L = .1
+        tail_W = .5
 
         # Define the points on the aircraft following diagram Fig 2.14
         # points are in NED coordinates
         ##### TODO #####
-        points = np.array([[0, 0, 0],  # point 1 [0]
-                           [1, 1, 1],  # point 2 [1]
-                           [1, 1, 0],  # point 3 [2]
+        points = np.array([[fuse_L1,         0,         0],  # point 1 [0]
+                           [fuse_L2,         fuse_W/2, -fuse_H/2],  # point 2 [1]
+                           [fuse_L2,        -fuse_W/2, -fuse_H/2],  # point 3 [2]
+                           [fuse_L2,        -fuse_W/2,  fuse_H/2],  # point 4 [3]
+                           [fuse_L2,         fuse_W/2,  fuse_H/2],  # point 5 [4]
+                           [-fuse_L3,        0,         0],  # point 6 [5]
+                           [0,               wing_W/2,  0],  # point 7 [6]
+                           [-wing_L,         wing_W/2,  0],  # po        int 8 [7]
+                           [-wing_L,        -wing_W/2,  0],  # point 9 [8]
+                           [0,              -wing_W/2,  0],  # point 10 [9]
+                           [tail_L-fuse_L3,  tail_W/2,  0],  # point 11 [10]
+                           [-fuse_L3,        tail_W/2,  0],  # point 12 [11]
+                           [-fuse_L3,       -tail_W/2,  0],  # point 13 [12]
+                           [tail_L-fuse_L3, -tail_W/2,  0],  # point 14 [13]
+                           [tail_L-fuse_L3,  0,         0],  # point 15 [14]
+                           [-fuse_L3,        0,        -tail_H],  # point 16 [15]
                            ]).T
 
         # scale points for better rendering
-        scale = 20
+        scale = 60
         points = scale * points
 
         #   define the colors for each face of triangular mesh
@@ -112,7 +134,18 @@ class DrawMav:
         # Assign colors for each mesh section
         ##### TODO #####
         meshColors[0] = yellow # nose-top
-
+        meshColors[1] = green    # nose-right
+        meshColors[2] = blue   # nose-bottom
+        meshColors[3] = green   # nose-left
+        meshColors[4] = yellow   # body-top
+        meshColors[5] = green   # body-right
+        meshColors[6] = blue   # body-bot
+        meshColors[7] = green   # body-left
+        meshColors[8] = red   # wing-front
+        meshColors[9] = red   # wing-back
+        meshColors[10] = red  # tail-front
+        meshColors[11] = red  # tail-back
+        meshColors[12] = red  # tail-top
         return points, meshColors
 
     def points_to_mesh(self, points):
@@ -125,6 +158,19 @@ class DrawMav:
 
         #Define each section of the mesh with 3 points
         ##### TODO #####
-        mesh = np.array([[points[0], points[1], points[2]]]) # nose-top
+        mesh = np.array([[points[0], points[1], points[2]], # nose-top
+                         [points[0], points[1], points[4]], # nose-right
+                         [points[0], points[4], points[3]], # nose-bottom
+                         [points[0], points[3], points[2]], # nose-left
+                         [points[1], points[2], points[5]], # body-top
+                         [points[1], points[4], points[5]], # body-right
+                         [points[3], points[4], points[5]], # body-bot
+                         [points[3], points[2], points[5]], # body-left
+                         [points[6], points[7], points[9]], # wing-front
+                         [points[9], points[8], points[7]], # wing-back
+                         [points[10], points[11], points[13]], # tail-front
+                         [points[12], points[11], points[13]], # tail-back
+                         [points[5], points[14], points[15]]  # tail-top
+                         ]) 
 
         return mesh

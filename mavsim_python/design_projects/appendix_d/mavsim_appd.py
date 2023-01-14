@@ -6,7 +6,8 @@ mavsimPy
         1/17/2019 - RWB
 """
 import sys
-sys.path.append('../..')
+sys.path.append('../..') 
+sys.path.append('/home/kody/Flight_dynamics_and_controls/mavsim_python/parameters')
 import numpy as np
 import parameters.simulation_parameters as SIM
 from viewers.spacecraft_viewer import SpaceCraftViewer
