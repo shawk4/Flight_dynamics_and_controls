@@ -1,3 +1,6 @@
+# Other files to ignore
+uavbook_ME634_EE_674.pdf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
