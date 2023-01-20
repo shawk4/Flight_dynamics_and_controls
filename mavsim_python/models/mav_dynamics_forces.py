@@ -12,6 +12,7 @@ import sys
 sys.path.append('..')
 import numpy as np
 
+
 # load message types
 from message_types.msg_state import MsgState
 from message_types.msg_delta import MsgDelta
@@ -89,32 +90,98 @@ class MavDynamics:
         """
         for the dynamics xdot = f(x, u), returns f(x, u)
         """
+
         ##### TODO #####
-        
+        # Airframe parameters from Appendix E
+        # physical parameters
+        m = 11 #kg
+        Jx = 0.824 # kg-m^2
+        Jy = 1.135 # kg-m^2
+        Jz = 1.759 # kg-m^2
+        Jxz = 0.12 # kg-m^2
+        S = .55 # m^2
+        b = .29 # m
+        c = 0.19 # m
+        ro = 1.268 # kg/m^3
+        e = 0.9
+        # Motor parameters
+        Vmax = 44.4 # V
+        Dprop = 0.5 # m
+        # ...
+
+        # Changeable parameters for each state include:
+        moments = 0.0
+        products_of_inertia = 0
+        initial_conditions = 0
+
         # Extract the States
-        # north = state.item(0)
+        north = state.item(0)
+        east = state.item(1)
+        down = state.item(2)
+        pos = np.array([north,east,down]).T # inertial positions
+        p = state.item(10)
+        q = state.item(11)
+        r = state.item(12)
+        rotation_rate = np.array([p,q,r]).T
+
 
         # Extract Forces/Moments
-        # fx = forces_moments.item(0)
+        fx = forces_moments.item(0)
+        fy = forces_moments.item(1)
+        fz = forces_moments.item(2)
+        f_xyz = np.array([fx,fy,fz]).T #forces along primary axis in the body frame
+        l = forces_moments.item(3) # external moment applied to the airfram about body x axis
+        My = forces_moments.item(4) # external moment applied to the airfram about body y axis
+        n = forces_moments.item(5) # external moment applied to the airfram about body z axis
 
+        theta = 0
+        psi = 0
+        phi = 0
+        #rotation from the vehicle frame to the body frame. Is the vehicle frame the same as the inertial frame???
+        R_v_b = np.array([
+            [np.cos(theta)*np.cos(psi), np.sin(phi)*np.sin(theta)*np.cos(psi)-np.cos(theta)*np.sin(psi), np.cos(phi)*np.sin(theta)*np.cos(psi)+np.sin(theta)*np.sin(psi)],
+            [np.cos(theta)*np.cos(psi), np.sin(phi)*np.sin(theta)*np.cos(psi)+np.cos(theta)*np.sin(psi), np.cos(phi)*np.sin(theta)*np.cos(psi)-np.sin(theta)*np.sin(psi)],
+            [-np.sin(theta)           , np.sin(phi)*np.cos(theta)                                      , np.cos(phi)*np.cos(theta)]])
+        R_yaw_pitch_role = np.array([
+            [1, np.sin(phi)*np.tan(theta)   , np.cos(phi)*np.tan(theta)],
+            [0, np.cos(theta)               , -np.sin(phi)],
+            [0, np.sin(phi)*1/np.cos(theta), np.cos(phi)*1/np.cos(theta)]])
+        G = Jx*Jz-Jxz**2
+        G1 = Jxz*(Jx-Jy+Jz)/G
+        G2 = (Jz*(Jz-Jy)+Jxz**2)/G
+        G3 = Jz/G
+        G4 = Jxz/G
+        G5 = Jz-Jx/Jy
+        G6 = Jxz/Jy
+        G7 = ((Jx-Jy)*Jx+Jxz**2)/G
+        G8 = Jx/G
+
+        U = np.array([u,v,w]).T # inertial velocties or Vg expressed in the body frame
         # Position Kinematics
-        # pos_dot = 
+        pos_dot = R_v_b * U
 
         # Position Dynamics
-        # u_dot = 
+        U_dot = np.cross(pos,U) + 1/m*f_xyz
 
 
         # rotational kinematics
-        # e0_dot =
+        euler_dot = R_yaw_pitch_role @ rotation_rate
+        E_dot = euler_dot # convert euler angles to quaternion
 
 
         # rotatonal dynamics
-        # p_dot = 
+        p_dot = G1*p*q-G2*q*r         + G3*l+G4*n
+        q_dot = G5*p*r-G6*(p**2-r**2) + 1/Jy*My
+        r_dot =  G7*p*q-G1*q*r        + G4*l+G8*n
         
 
         # collect the derivative of the states
-        # x_dot = np.array([[north_dot, east_dot,... ]]).T
-        x_dot = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0]]).T
+        x_dot = np.array([[
+            pos_dot[0],pos_dot[1],pos_dot[2],
+            U_dot[0],U_dot[1],U_dot[2],
+            E_dot[0],E_dot[1],E_dot[2],E_dot[3],
+            p_dot,q_dot,r_dot ]]).T
+        # x_dot = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0]]).T
         return x_dot
 
     def _update_true_state(self):
