@@ -115,14 +115,18 @@ class MavDynamics:
         initial_conditions = 0
 
         # Extract the States
-        north = state.item(0)
-        east = state.item(1)
-        down = state.item(2)
+        north = state.item(0)[0]
+        east = state.item(1)[1]
+        down = state.item(2)[2]
+        u = state.item(3)
+        v = state.item(4)
+        w = state.item(5)
         pos = np.array([north,east,down]).T # inertial positions
+        Q = np.array([state.item(6),state.item(7),state.item(8),state.item(9)]).T
         p = state.item(10)
         q = state.item(11)
         r = state.item(12)
-        rotation_rate = np.array([p,q,r]).T
+        # rotation_rate = np.array([p,q,r]).T
 
 
         # Extract Forces/Moments
@@ -142,10 +146,15 @@ class MavDynamics:
             [np.cos(theta)*np.cos(psi), np.sin(phi)*np.sin(theta)*np.cos(psi)-np.cos(theta)*np.sin(psi), np.cos(phi)*np.sin(theta)*np.cos(psi)+np.sin(theta)*np.sin(psi)],
             [np.cos(theta)*np.cos(psi), np.sin(phi)*np.sin(theta)*np.cos(psi)+np.cos(theta)*np.sin(psi), np.cos(phi)*np.sin(theta)*np.cos(psi)-np.sin(theta)*np.sin(psi)],
             [-np.sin(theta)           , np.sin(phi)*np.cos(theta)                                      , np.cos(phi)*np.cos(theta)]])
-        R_yaw_pitch_role = np.array([
-            [1, np.sin(phi)*np.tan(theta)   , np.cos(phi)*np.tan(theta)],
-            [0, np.cos(theta)               , -np.sin(phi)],
-            [0, np.sin(phi)*1/np.cos(theta), np.cos(phi)*1/np.cos(theta)]])
+        # R_yaw_pitch_roll = np.array([
+        #     [1, np.sin(phi)*np.tan(theta)   , np.cos(phi)*np.tan(theta)],
+        #     [0, np.cos(theta)               , -np.sin(phi)],
+        #     [0, np.sin(phi)*1/np.cos(theta), np.cos(phi)*1/np.cos(theta)]])
+        Q_yaw_pitch_roll = np.array([
+            [0,-p,-q,-r],
+            [p, 0, r,-q],
+            [q,-r, 0, p],
+            [r, q,-p, 0]])
         G = Jx*Jz-Jxz**2
         G1 = Jxz*(Jx-Jy+Jz)/G
         G2 = (Jz*(Jz-Jy)+Jxz**2)/G
@@ -165,8 +174,9 @@ class MavDynamics:
 
 
         # rotational kinematics
-        euler_dot = R_yaw_pitch_role @ rotation_rate
-        E_dot = euler_dot # convert euler angles to quaternion
+        # euler_dot = R_yaw_pitch_roll @ rotation_rate
+        # E_dot = euler_dot # convert euler angles to quaternion
+        Q_dot = .5* Q_yaw_pitch_roll @ Q
 
 
         # rotatonal dynamics
@@ -179,7 +189,7 @@ class MavDynamics:
         x_dot = np.array([[
             pos_dot[0],pos_dot[1],pos_dot[2],
             U_dot[0],U_dot[1],U_dot[2],
-            E_dot[0],E_dot[1],E_dot[2],E_dot[3],
+            Q_dot[0],Q_dot[1],Q_dot[2],Q_dot[3],
             p_dot,q_dot,r_dot ]]).T
         # x_dot = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0]]).T
         return x_dot
