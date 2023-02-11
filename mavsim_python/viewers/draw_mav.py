@@ -120,8 +120,9 @@ class DrawMav:
                            [-fuse_L3,        0,        -tail_H],  # point 16 [15]
                            ]).T
 
+
         # scale points for better rendering
-        scale = 60
+        scale = 20
         points = scale * points
 
         #   define the colors for each face of triangular mesh
@@ -146,6 +147,7 @@ class DrawMav:
         meshColors[10] = red  # tail-front
         meshColors[11] = red  # tail-back
         meshColors[12] = red  # tail-top
+
         return points, meshColors
 
     def points_to_mesh(self, points):

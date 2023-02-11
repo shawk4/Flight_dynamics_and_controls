@@ -46,8 +46,9 @@ AR = (b**2) / S_wing
 gravity = 9.81
 
 ######################################################################################
-                #   Longitudinal Coefficients
+                #   Aerodynamic coefficients for the Aerosonde UAV
 ######################################################################################
+#   Longitudinal Coefficients
 C_L_0 = 0.23
 C_D_0 = 0.043
 C_m_0 = 0.0135
@@ -65,10 +66,7 @@ alpha0 = 0.47
 epsilon = 0.16
 C_D_p = 0.0
 
-
-######################################################################################
-                #   Lateral Coefficients
-######################################################################################
+#   Lateral Coefficients
 C_Y_0 = 0.0
 C_ell_0 = 0.0
 C_n_0 = 0.0
@@ -94,9 +92,16 @@ C_n_delta_r = -0.069
 # Prop parameters
 D_prop = 20*(0.0254)     # prop diameter in m
 
+# # Motor parameters
+# KV = 145.                   # from datasheet RPM/V
+# KQ = (1. / KV) * 60. / (2. * np.pi)  # KQ in N-m/A, V-s/rad
+# R_motor = 0.042              # ohms
+# i0 = 1.5                     # no-load (zero-torque) current (A)
+
 # Motor parameters
-KV = 145.                   # from datasheet RPM/V
-KQ = (1. / KV) * 60. / (2. * np.pi)  # KQ in N-m/A, V-s/rad
+KV_rpm_per_volt = 145.                            # Motor speed constant from datasheet in RPM/V
+KV = (1. / KV_rpm_per_volt) * 60. / (2. * np.pi)  # Back-emf constant, KV in V-s/rad
+KQ = KV                                           # Motor torque constant, KQ in N-m/A
 R_motor = 0.042              # ohms
 i0 = 1.5                     # no-load (zero-torque) current (A)
 

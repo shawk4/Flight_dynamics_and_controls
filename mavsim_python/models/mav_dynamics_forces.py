@@ -12,7 +12,6 @@ import sys
 sys.path.append('..')
 import numpy as np
 
-
 # load message types
 from message_types.msg_state import MsgState
 from message_types.msg_delta import MsgDelta
@@ -51,7 +50,7 @@ class MavDynamics:
     ###################################
     # public functions
     def update(self, forces_moments):
-        '''
+        '''Quaternion2Rotation(np.array([e0,e1,e2,e3])).T
             Integrate the differential equations defining dynamics, update sensors
             delta = (delta_a, delta_e, delta_r, delta_t) are the control inputs
             wind is the wind vector in inertial coordinates
@@ -90,43 +89,37 @@ class MavDynamics:
         """
         for the dynamics xdot = f(x, u), returns f(x, u)
         """
-
         ##### TODO #####
         # Airframe parameters from Appendix E
         # physical parameters
-        m = 11 #kg
-        Jx = 0.824 # kg-m^2
-        Jy = 1.135 # kg-m^2
-        Jz = 1.759 # kg-m^2
-        Jxz = 0.12 # kg-m^2
-        S = .55 # m^2
-        b = .29 # m
-        c = 0.19 # m
-        ro = 1.268 # kg/m^3
-        e = 0.9
-        # Motor parameters
-        Vmax = 44.4 # V
-        Dprop = 0.5 # m
-        # ...
+        mass = MAV.mass # 11 kg
+        # Jx = MAV.Jx # 0.824 # kg-m^2
+        Jy = MAV.Jy # 1.135 # kg-m^2
+        # Jz = MAV.Jz # 1.759 # kg-m^2
+        # Jxz = MAV.Jxz # 0.12 # kg-m^2
 
         # Changeable parameters for each state include:
-        moments = 0.0
-        products_of_inertia = 0
-        initial_conditions = 0
+        # moments = 0.0
+        # products_of_inertia = 0
+        # initial_conditions = 0
 
         # Extract the States
-        north = state.item(0)[0]
-        east = state.item(1)[1]
-        down = state.item(2)[2]
+        north = state.item(0)
+        east = state.item(1)
+        down = state.item(2)
         u = state.item(3)
         v = state.item(4)
         w = state.item(5)
-        pos = np.array([north,east,down]).T # inertial positions
+        # pos = np.array([north,east,down]).T # inertial positions
         Q = np.array([state.item(6),state.item(7),state.item(8),state.item(9)]).T
+        e0 = state.item(6)
+        e1 = state.item(7)
+        e2 = state.item(8)
+        e3 = state.item(9)
         p = state.item(10)
         q = state.item(11)
         r = state.item(12)
-        # rotation_rate = np.array([p,q,r]).T
+        rotation_rate = np.array([p,q,r]).T
 
 
         # Extract Forces/Moments
@@ -138,14 +131,25 @@ class MavDynamics:
         My = forces_moments.item(4) # external moment applied to the airfram about body y axis
         n = forces_moments.item(5) # external moment applied to the airfram about body z axis
 
-        theta = 0
-        psi = 0
-        phi = 0
+        # theta = 0
+        # psi = 0
+        # phi = 0
+        # theta, psi, phi = Quaternion2Euler(Q)
         #rotation from the vehicle frame to the body frame. Is the vehicle frame the same as the inertial frame???
-        R_v_b = np.array([
-            [np.cos(theta)*np.cos(psi), np.sin(phi)*np.sin(theta)*np.cos(psi)-np.cos(theta)*np.sin(psi), np.cos(phi)*np.sin(theta)*np.cos(psi)+np.sin(theta)*np.sin(psi)],
-            [np.cos(theta)*np.cos(psi), np.sin(phi)*np.sin(theta)*np.cos(psi)+np.cos(theta)*np.sin(psi), np.cos(phi)*np.sin(theta)*np.cos(psi)-np.sin(theta)*np.sin(psi)],
-            [-np.sin(theta)           , np.sin(phi)*np.cos(theta)                                      , np.cos(phi)*np.cos(theta)]])
+        # R_v_b = np.array([
+        #     [np.cos(theta)*np.cos(psi), np.sin(phi)*np.sin(theta)*np.cos(psi)-np.cos(phi)*np.sin(psi), np.cos(phi)*np.sin(theta)*np.cos(psi)+np.sin(phi)*np.sin(psi)],
+        #     [np.cos(theta)*np.sin(psi), np.sin(phi)*np.sin(theta)*np.sin(psi)+np.cos(phi)*np.cos(psi), np.cos(phi)*np.sin(theta)*np.sin(psi)-np.sin(phi)*np.sin(psi)],
+        #     [-np.sin(theta)           , np.sin(phi)*np.cos(theta)                                      , np.cos(phi)*np.cos(theta)]])
+
+        # R_bi = np.array(
+        #     [[e1**2 +e0**2-e2**2-e3**2, 2*(e1*e2-e3*e0),         2*(e1*e3+e2*e0)],
+        #      [2*(e1*e2+e3*e0),          e2**2+e0**2-e1**2-e3**2, 2*(e2*e3-e1*e0)],
+        #      [2*(e1*e3-e2*e0),          2*(e2*e3+e1*e0),         e3**2+e0**2-e1**2-e2**2]])
+        R_bi = Quaternion2Rotation(np.array([e0,e1,e2,e3]))
+
+        # phi_dot = p + q*np.sin(phi)*np.tan(theta) + r*np.cos(phi)*np.tan(theta)
+        # theta_dot = q*np.cos(phi) - r*np.sin(phi)
+        # psi_dot = q*np.sin(phi)/np.cos(theta) + r*np.cos(phi)/np.cos(theta)
         # R_yaw_pitch_roll = np.array([
         #     [1, np.sin(phi)*np.tan(theta)   , np.cos(phi)*np.tan(theta)],
         #     [0, np.cos(theta)               , -np.sin(phi)],
@@ -155,28 +159,29 @@ class MavDynamics:
             [p, 0, r,-q],
             [q,-r, 0, p],
             [r, q,-p, 0]])
-        G = Jx*Jz-Jxz**2
-        G1 = Jxz*(Jx-Jy+Jz)/G
-        G2 = (Jz*(Jz-Jy)+Jxz**2)/G
-        G3 = Jz/G
-        G4 = Jxz/G
-        G5 = Jz-Jx/Jy
-        G6 = Jxz/Jy
-        G7 = ((Jx-Jy)*Jx+Jxz**2)/G
-        G8 = Jx/G
+        G = MAV.gamma   # Jx*Jz-Jxz**2
+        G1 = MAV.gamma1 # Jxz*(Jx-Jy+Jz)/G
+        G2 = MAV.gamma2 # (Jz*(Jz-Jy)+Jxz**2)/G
+        G3 = MAV.gamma3 # Jz/G
+        G4 = MAV.gamma4 # Jxz/G
+        G5 = MAV.gamma5 # Jz-Jx/Jy
+        G6 = MAV.gamma6 # Jxz/Jy
+        G7 = MAV.gamma7 # ((Jx-Jy)*Jx+Jxz**2)/G
+        G8 = MAV.gamma8 # Jx/G
 
         U = np.array([u,v,w]).T # inertial velocties or Vg expressed in the body frame
         # Position Kinematics
-        pos_dot = R_v_b * U
+        pos_dot = R_bi @ U
 
         # Position Dynamics
-        U_dot = np.cross(pos,U) + 1/m*f_xyz
+        U_dot = np.cross(-rotation_rate,U) + 1/mass*f_xyz
 
 
         # rotational kinematics
         # euler_dot = R_yaw_pitch_roll @ rotation_rate
         # E_dot = euler_dot # convert euler angles to quaternion
         Q_dot = .5* Q_yaw_pitch_roll @ Q
+
 
 
         # rotatonal dynamics
@@ -192,6 +197,7 @@ class MavDynamics:
             Q_dot[0],Q_dot[1],Q_dot[2],Q_dot[3],
             p_dot,q_dot,r_dot ]]).T
         # x_dot = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0]]).T
+ 
         return x_dot
 
     def _update_true_state(self):
