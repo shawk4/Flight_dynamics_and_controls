@@ -83,7 +83,7 @@ def trim_objective_fun(x, mav, Va, gamma):
     ##### TODO #####
     state = x[0:13]
     delta = MsgDelta(elevator=x.item(13), aileron=x.item(14), rudder=x.item(15), throttle=x.item(16))
-    des_trim_state_dot = np.array([[0.0,0.0, -Va*np.sin(gamma), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T
+    des_trim_state_dot = np.array([[0.0,0.0, -Va*np.sin(gamma), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T # Va*np.cos(gamma)/R
     mav._state = state
     mav._update_velocity_data()
     forces_moments = mav._forces_moments(delta)
