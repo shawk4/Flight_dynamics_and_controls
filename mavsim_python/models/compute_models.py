@@ -12,7 +12,7 @@ from tools.rotations import Euler2Quaternion, Quaternion2Euler
 import parameters.aerosonde_parameters as MAV
 from parameters.simulation_parameters import ts_simulation as Ts
 from message_types.msg_delta import MsgDelta
-
+import copy
 
 def compute_model(mav, trim_state, trim_input):
     # Note: this function alters the mav private variables
@@ -225,8 +225,10 @@ def f_euler(mav, x_euler, delta):
        [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]])
     
 
-    eps = 0.01     
+    eps = 0.001     
     x_quat = quaternion_state(x_euler)
+    mav._state = x_quat
+    mav._update_velocity_data()
     dq_dt = mav._derivatives(x_quat, mav._forces_moments(delta))
     for i in range(4):   
         x_quat_eps = np.copy(x_quat)
@@ -265,14 +267,39 @@ def df_du(mav, x_euler, delta):
 
     ##### TODO #####
     B = np.zeros((12, 4))  # Jacobian of f wrt u
-    f_at_x = f_euler(mav, x_euler,delta) 
-    for i in range(0,4):  
-        x_eps = np.copy(x_euler)
-        x_eps[i][0] += eps # make a step by epsilon
-        f_at_x_eps = f_euler(mav,x_eps,delta)
-        df_dxi = (f_at_x_eps - f_at_x) / eps
-        B[:,i] = df_dxi[:,0]
+    u = np.zeros(4)
+    f_at_x = f_euler(mav, x_euler,delta)
+    delta_eps_a = copy.copy(delta)
+    delta_eps_e = copy.copy(delta)
+    delta_eps_r = copy.copy(delta)
+    delta_eps_t = copy.copy(delta)
+
+    delta_eps_a.aileron  += eps
+    delta_eps_e.elevator += eps
+    delta_eps_r.rudder   += eps
+    delta_eps_t.throttle += eps
+
+    f_at_x_eps_a   = f_euler(mav,x_euler,delta_eps_a)
+    f_at_x_eps_e   = f_euler(mav,x_euler,delta_eps_e)
+    f_at_x_eps_r   = f_euler(mav,x_euler,delta_eps_r)
+    f_at_x_eps_t   = f_euler(mav,x_euler,delta_eps_t)
+
+    B[:,0] = ((f_at_x_eps_t - f_at_x) / eps)[:,0]
+    B[:,1] = ((f_at_x_eps_e - f_at_x) / eps)[:,0]
+    B[:,2] = ((f_at_x_eps_a - f_at_x) / eps)[:,0]
+    B[:,3] = ((f_at_x_eps_r - f_at_x) / eps)[:,0]
+
     return B
+
+    # B = np.zeros((12, 4))  # Jacobian of f wrt u
+    # f_at_x = f_euler(mav, x_euler,delta) 
+    # for i in range(0,4):  
+    #     x_eps = np.copy(x_euler)
+    #     x_eps[i][0] += eps # make a step by epsilon
+    #     f_at_x_eps = f_euler(mav,x_eps,delta)
+    #     df_dxi = (f_at_x_eps - f_at_x) / eps
+    #     B[:,i] = df_dxi[:,0]
+    # return B
 
 
 def dT_dVa(mav, Va, delta_t):

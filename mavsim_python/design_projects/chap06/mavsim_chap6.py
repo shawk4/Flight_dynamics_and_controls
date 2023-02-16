@@ -56,7 +56,7 @@ autopilot = Autopilot(SIM.ts_simulation)
 # autopilot commands
 from message_types.msg_autopilot import MsgAutopilot
 commands = MsgAutopilot()
-Va_command = Signals(dc_offset=25.0,
+Va_command = Signals(dc_offset=35.0,
                      amplitude=3.0,
                      start_time=2.0,
                      frequency=0.01)
@@ -71,7 +71,7 @@ course_command = Signals(dc_offset=np.radians(180),
 
 
 # use compute_trim function to compute trim state and trim input
-Va = 25.
+Va = 15.
 gamma = 0.*np.pi/180.
 trim_state, trim_input = compute_trim(mav, Va, gamma)
 mav._state = trim_state  # set the initial state of the mav to the trim state
@@ -101,7 +101,7 @@ while sim_time < end_time:
     delta.aileron += delta_trim.aileron
     delta.elevator += delta_trim.elevator
     delta.rudder += delta_trim.rudder
-    delta.throttle += delta_trim.throttle
+    # delta.throttle += delta_trim.throttle
 
     # -------physical system-------------
     current_wind = wind.update()  # get the new wind vector
@@ -114,7 +114,7 @@ while sim_time < end_time:
         plot_time = sim_time
         data_view.update(mav.true_state,  # true states
                             None,  # estimated states
-                            commanded_state,  # commanded states
+                            commanded_state,  # commanded states commanded_state, None
                             delta)  # inputs to aircraft
     if ANIMATION or PLOTS:
         app.processEvents()
