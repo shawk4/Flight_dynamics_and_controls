@@ -20,6 +20,10 @@ from viewers.mav_viewer import MavViewer
 from viewers.data_viewer import DataViewer
 from tools.quit_listener import QuitListener
 
+from models.trim import compute_trim
+from models.compute_models import compute_model
+COMPUTE_MODEL = True
+
 quitter = QuitListener()
 
 VIDEO = False
@@ -65,6 +69,19 @@ course_command = Signals(dc_offset=np.radians(180),
                          start_time=5.0,
                          frequency=0.015)
 
+
+# use compute_trim function to compute trim state and trim input
+Va = 25.
+gamma = 0.*np.pi/180.
+trim_state, trim_input = compute_trim(mav, Va, gamma)
+mav._state = trim_state  # set the initial state of the mav to the trim state
+delta_trim = trim_input  # set input to constant constant trim input
+
+# # compute the state space model linearized about trim
+if COMPUTE_MODEL:
+    compute_model(mav, trim_state, trim_input)
+
+
 # initialize the simulation time
 sim_time = SIM.start_time
 end_time = 100
@@ -81,6 +98,10 @@ while sim_time < end_time:
     # -------autopilot-------------
     estimated_state = mav.true_state  # uses true states in the control
     delta, commanded_state = autopilot.update(commands, estimated_state)
+    delta.aileron += delta_trim.aileron
+    delta.elevator += delta_trim.elevator
+    delta.rudder += delta_trim.rudder
+    delta.throttle += delta_trim.throttle
 
     # -------physical system-------------
     current_wind = wind.update()  # get the new wind vector

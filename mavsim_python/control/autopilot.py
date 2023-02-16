@@ -62,21 +62,27 @@ class Autopilot:
 	
 	#### TODO #####
         # lateral autopilot
-
+        chi_c = wrap(cmd.course_command, state.chi)
+        phi_c = self.saturate(cmd.phi_feedforward + self.course_from_roll.update(chi_c,state.chi), -np.radians(30), np.radians(30))
+        delta_a = self.roll_from_aileron.update(phi_c, state.phi, state.p)
+        delta_r = self.yaw_damper.update(state.r) # yaw state
 
         # longitudinal autopilot
-
-
+        h_c = self.saturate(cmd.altitude_command, state.altitude - AP.altitude_zone, state.altitude + AP.altitude_zone)
+        theta_c = self.altitude_from_pitch.update(h_c, state.altitude)
+        delta_e = self.pitch_from_elevator.update(theta_c, state.theta, state.q) # q = pitch_rate
+        delta_t = self.airspeed_from_throttle.update(cmd.airspeed_command, state.Va)
+        delta_t = self.saturate(delta_t, 0.0, 1.0)
         # construct control outputs and commanded states
-        delta = MsgDelta(elevator=0,
-                         aileron=0,
-                         rudder=0,
-                         throttle=0)
+        delta = MsgDelta(elevator=delta_e,
+                         aileron=delta_a,
+                         rudder=delta_r,
+                         throttle=delta_t)
         self.commanded_state.altitude = 0
         self.commanded_state.Va = 0
         self.commanded_state.phi = 0
         self.commanded_state.theta = 0
-        self.commanded_state.chi = 0
+        self.commanded_state.chi = 0 # Course angle
         return delta, self.commanded_state
 
     def saturate(self, input, low_limit, up_limit):
