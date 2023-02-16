@@ -15,6 +15,8 @@ sigma = 0  # low pass filter gain for derivative
 # get transfer function data for delta_a to phi
 wn_roll = 14.5
 zeta_roll = 0.707
+wn_roll = 14
+zeta_roll = 0.707
 roll_kp = 0
 roll_kd = 0
 
@@ -36,6 +38,7 @@ pitch_kd = 0
 
 k_p_theta = wn_pitch**2-TF.a_theta2/TF.a_theta3
 K_theta_DC = k_p_theta*TF.a_theta3/(TF.a_theta2 + k_p_theta*TF.a_theta3)
+
 
 #----------altitude loop-------------
 wn_altitude = 0.058
