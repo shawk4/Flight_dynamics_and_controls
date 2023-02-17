@@ -56,7 +56,7 @@ autopilot = Autopilot(SIM.ts_simulation)
 # autopilot commands
 from message_types.msg_autopilot import MsgAutopilot
 commands = MsgAutopilot()
-Va_command = Signals(dc_offset=35.0,
+Va_command = Signals(dc_offset=25.0,
                      amplitude=3.0,
                      start_time=2.0,
                      frequency=0.01)
@@ -98,9 +98,9 @@ while sim_time < end_time:
     # -------autopilot-------------
     estimated_state = mav.true_state  # uses true states in the control
     delta, commanded_state = autopilot.update(commands, estimated_state)
-    delta.aileron += delta_trim.aileron
-    delta.elevator += delta_trim.elevator
-    delta.rudder += delta_trim.rudder
+    delta.aileron = delta_trim.aileron
+    # delta.elevator = delta_trim.elevator
+    delta.rudder = delta_trim.rudder
     # delta.throttle += delta_trim.throttle
 
     # -------physical system-------------

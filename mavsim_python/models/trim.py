@@ -20,24 +20,24 @@ def compute_trim(mav, Va, gamma):
     # set the initial conditions of the optimization
     state = mav._state # use this to set the current state? how to handle gamma state_e0 - gamma_e0 or switch to euler first ???????????????????
     e = Euler2Quaternion(0., gamma, 0.)
-    state0 = np.array([[mav.true_state.north],  # pn
-                   [mav.true_state.east],  # pe
-                   [-mav.true_state.altitude],  # pd Va*np.sin(gamma)
-                   [mav.true_state.Va],  # u
-                   [MAV.v0], # v
-                   [MAV.w0], # w
+    state0 = np.array([[mav._state.item(0)],  # pn
+                   [mav._state.item(1)],  # pe
+                   [mav._state.item(2)],  # pd Va*np.sin(gamma)
+                   [mav._Va],  # u
+                   [0], # v
+                   [0], # w
                    [e.item(0)],  # e0
                    [e.item(1)],  # e1
                    [e.item(2)],  # e2
                    [e.item(3)],  # e3
-                   [mav.true_state.p], # p
-                   [mav.true_state.q], # q
-                   [mav.true_state.r]  # r
+                   [0], # p
+                   [0], # q
+                   [0]  # r
                    ])
-    delta0 = np.array([[0],  # elevator
-                       [0],  # aileron
+    delta0 = np.array([[-0.58],  # elevator
+                       [0.0053],  # aileron
                        [0],  # rudder
-                       [0]]) # throttle
+                       [.5]]) # throttle
     x0 = np.concatenate((state0, delta0), axis=0)
     # define equality constraints
     cons = ({'type': 'eq',
