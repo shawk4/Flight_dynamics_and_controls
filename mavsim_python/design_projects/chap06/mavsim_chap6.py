@@ -61,13 +61,13 @@ Va_command = Signals(dc_offset=25.0,
                      start_time=2.0,
                      frequency=0.01)
 altitude_command = Signals(dc_offset=100.0,
-                           amplitude=20.0,
+                           amplitude=20.0, # 20.0
                            start_time=0.0,
-                           frequency=0.02)
-course_command = Signals(dc_offset=np.radians(180),
-                         amplitude=np.radians(45),
+                           frequency=0.02) # 0.02
+course_command = Signals(dc_offset=np.radians(180), # 180
+                         amplitude=np.radians(45), # 45
                          start_time=5.0,
-                         frequency=0.015)
+                         frequency=0.015) # 0.015
 
 
 # use compute_trim function to compute trim state and trim input
@@ -98,8 +98,8 @@ while sim_time < end_time:
     # -------autopilot-------------
     estimated_state = mav.true_state  # uses true states in the control
     delta, commanded_state = autopilot.update(commands, estimated_state)
-    delta.aileron = delta_trim.aileron
-    # delta.elevator = delta_trim.elevator
+    # delta.aileron = delta_trim.aileron
+    # delta.elevator = -.1 #delta_trim.elevator
     delta.rudder = delta_trim.rudder
     # delta.throttle += delta_trim.throttle
 
