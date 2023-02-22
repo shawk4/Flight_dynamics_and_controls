@@ -124,7 +124,7 @@ class MavDynamics:
         # magnetic field in provo has magnetic declination of 12.5 degrees
         # and magnetic inclination of 66 degrees
         delta = 12.5
-        phi = phi + SENSOR.gyro_x_bias + np.random.randn()*SENSOR.gyro_sigma !!! ... hmmm... a bias for x y and z....
+        phi = phi + SENSOR.gyro_x_bias + np.random.randn()*SENSOR.gyro_sigma #!!! ... hmmm... a bias for x y and z....
         m_0 = phi - delta
 
         # phi_m = -np.arctan2(self._state.item(1), self._state.item(0))
@@ -135,26 +135,26 @@ class MavDynamics:
         rz = np.array([-np.sin(theta),np.cos(theta)*np.sin(phi),np.cos(theta)*np.cos(phi)])
         self._sensors.mag_x = rx*m_0
         self._sensors.mag_y = ry*m_0
-        self._sensors.mag_z = rz*m_0 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! hmmm...
+        self._sensors.mag_z = rz*m_0 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! hmmm...
 
         # simulate pressure sensors
         Va = self._Va
         self._sensors.abs_pressure = MAV.rho*g*h_AGL + beta_abs + np.random.randn()*SENSOR.abs_pressure_sigma
-        self._sensors.diff_pressure = (MAV.rho*Va**2)/2 + beta + SENSOR.diff_pressure_sigma*np.random.randn() !!!!!!!!!!!!!!!!!!!!11
+        self._sensors.diff_pressure = (MAV.rho*Va**2)/2 + beta + SENSOR.diff_pressure_sigma*np.random.randn() #!!!!!!!!!!!!!!!!!!!!11
         
         # simulate GPS sensor
         if self._t_gps >= SENSOR.ts_gps:
             self._gps_eta_n = np.random.randn()*SENSOR.gps_eta_n_sigma
             self._gps_eta_e = np.random.randn()*SENSOR.gps_eta_e_sigma
             self._gps_eta_h = np.random.randn()*SENSOR.gps_eta_h_sigma
-            vn = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*vn_prev + self._gps_eta_h !!!!!!!!!!!!!!!!! vn_prev used before declared
+            vn = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*vn_prev + self._gps_eta_h # !!!!!!!!!!!!!!!!! vn_prev used before declared
             ve = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*ve_prev + self._gps_eta_h
             vd = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*vd_prev + self._gps_eta_h
             self._sensors.gps_n =  self._state.item(1) + vn_prev
             self._sensors.gps_e =  self._state.item(2) + ve_prev
             self._sensors.gps_h = -self._state.item(3) + vd_prev
-            self._sensors.gps_Vg = np.sqrt((Va*np.cos(phi)+omega_n)**2 + (Va*np.sin(phi)+omega_e)**2) + np.random.randn()*SENSOR.gps_Vg_sigma**2 !!! why is this one squared?
-            self._sensors.gps_course = np.arctan2((Va*np.sin(phi)+omega_e),(Va*np.cos(phi)+omega_n)) + np.random.randn()*SENSOR.gps_course_sigma**2 !!! what is Omega p q and r?
+            self._sensors.gps_Vg = np.sqrt((Va*np.cos(phi)+omega_n)**2 + (Va*np.sin(phi)+omega_e)**2) + np.random.randn()*SENSOR.gps_Vg_sigma**2 #!!! why is this one squared?
+            self._sensors.gps_course = np.arctan2((Va*np.sin(phi)+omega_e),(Va*np.cos(phi)+omega_n)) + np.random.randn()*SENSOR.gps_course_sigma**2 #!!! what is Omega p q and r?
             self._t_gps = 0.
             vn_prev = vn
             ve_prev = ve
