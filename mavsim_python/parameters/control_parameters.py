@@ -36,7 +36,6 @@ pitch_kd = (2*zeta_pitch*wn_pitch-TF.a_theta1)/TF.a_theta3
 
 K_theta_DC = pitch_kp*TF.a_theta3/(TF.a_theta2 + pitch_kp*TF.a_theta3)
 
-
 #----------altitude loop-------------
 wn_altitude = 0.58
 zeta_altitude = 0.707
