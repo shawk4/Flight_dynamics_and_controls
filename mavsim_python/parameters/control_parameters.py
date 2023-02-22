@@ -31,11 +31,12 @@ yaw_damper_p_wo = 0.45
 yaw_damper_kr = 0.2
 
 #----------pitch loop-------------
-wn_pitch = 0
-zeta_pitch = 0 
-pitch_kp = 0
-pitch_kd = 0
-K_theta_DC = 0
+wn_pitch = 30
+zeta_pitch = 0.707
+pitch_kp = (wn_pitch**2-TF.a_theta2)/TF.a_theta3
+pitch_kd = (2*zeta_pitch*wn_pitch-TF.a_theta1)/TF.a_theta3
+
+K_theta_DC = pitch_kp*TF.a_theta3/(TF.a_theta2 + pitch_kp*TF.a_theta3)
 
 #----------altitude loop-------------
 wn_altitude = 0.58
