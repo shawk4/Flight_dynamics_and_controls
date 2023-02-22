@@ -206,7 +206,9 @@ def f_euler(mav, x_euler, delta):
     # partial of Quaternion2Euler(quat) with respect to quat
     # compute partial Quaternion2Euler(quat) with respect to quat
     # dEuler/dt = dEuler/dquat * dquat/dt
-
+    x_quat = quaternion_state(x_euler)
+    mav._state = x_quat
+    mav._update_velocity_data()
     ##### TODO #####
     f_euler_ = np.zeros((12,1))
     dt_dq = np.zeros((3,4))      # probably incorrect
