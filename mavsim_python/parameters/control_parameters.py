@@ -9,6 +9,7 @@ import parameters.aerosonde_parameters as MAV
 gravity = MAV.gravity  # gravity constant
 Va0 = TF.Va_trim
 rho = MAV.rho # density of air
+rho = MAV.rho # density of air
 sigma = 0  # low pass filter gain for derivative
 
 #----------roll loop-------------
@@ -35,6 +36,7 @@ pitch_kp = (wn_pitch**2-TF.a_theta2)/TF.a_theta3
 pitch_kd = (2*zeta_pitch*wn_pitch-TF.a_theta1)/TF.a_theta3
 
 K_theta_DC = pitch_kp*TF.a_theta3/(TF.a_theta2 + pitch_kp*TF.a_theta3)
+
 
 #----------altitude loop-------------
 wn_altitude = 0.58
