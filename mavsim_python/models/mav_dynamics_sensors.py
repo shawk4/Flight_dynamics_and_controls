@@ -51,8 +51,8 @@ class MavDynamics:
         # store forces to avoid recalculation in the sensors function
         self._forces = np.array([[0.], [0.], [0.]])
         self._Va = MAV.u0
-        self._alpha = 0
-        self._beta = 0
+        self._alpha = 0 #!!!hmmm... 
+        self._beta = 0  #!!!hmmm... 
         # initialize true_state message
         self.true_state = MsgState()
         # initialize the sensors message
@@ -66,6 +66,10 @@ class MavDynamics:
         # update velocity data and forces and moments
         self._update_velocity_data()
         self._forces_moments(delta=MsgDelta())
+
+        self.vn_prev = 0
+        self.ve_prev = 0
+        self.vd_prev = 0
 
 
     ###################################
@@ -104,27 +108,28 @@ class MavDynamics:
         # update the message class for the true state
         self._update_true_state()
 
+
     def sensors(self):
         "Return value of sensors on MAV: gyros, accels, absolute_pressure, dynamic_pressure, GPS"
         ##### TODO #####
         # simulate rate gyros(units are rad / sec)
-        self._sensors.gyro_x = self._state.item(10) + np.random.randn()*SENSOR.gyro_sigma
-        self._sensors.gyro_y = self._state.item(11) + np.random.randn()*SENSOR.gyro_sigma
-        self._sensors.gyro_z = self._state.item(12) + np.random.randn()*SENSOR.gyro_sigma
+        self._sensors.gyro_x = self._state.item(10) + SENSOR.gyro_x_bias + np.random.randn()*SENSOR.gyro_sigma # !!! suspect this is the wrong p q and r self._state.item(10) 
+        self._sensors.gyro_y = self._state.item(11) + SENSOR.gyro_y_bias + np.random.randn()*SENSOR.gyro_sigma
+        self._sensors.gyro_z = self._state.item(12) + SENSOR.gyro_z_bias + np.random.randn()*SENSOR.gyro_sigma
 
         # simulate accelerometers(units of g)
         mass = MAV.mass
         g = MAV.gravity
         phi, theta, psi = Quaternion2Euler(self._state[6:10])
-        self._sensors.accel_x = self._forces[0]/mass + g*np.sin(theta)             + np.random.randn()*SENSOR.accel_sigma
-        self._sensors.accel_y = self._forces[1]/mass - g*np.cos(theta)*np.sin(phi) + np.random.randn()*SENSOR.accel_sigma
-        self._sensors.accel_z = self._forces[2]/mass - g*np.cos(theta)*np.cos(phi) + np.random.randn()*SENSOR.accel_sigma
+        self._sensors.accel_x = self._forces.item(0)/mass + g*np.sin(theta)             + np.random.randn()*SENSOR.accel_sigma
+        self._sensors.accel_y = self._forces.item(1)/mass - g*np.cos(theta)*np.sin(phi) + np.random.randn()*SENSOR.accel_sigma
+        self._sensors.accel_z = self._forces.item(2)/mass - g*np.cos(theta)*np.cos(phi) + np.random.randn()*SENSOR.accel_sigma
 
         # simulate magnetometers
         # magnetic field in provo has magnetic declination of 12.5 degrees
-        # and magnetic inclination of 66 degrees
+        # and magnetic inclination of 66 degrees not required.
         delta = 12.5
-        phi = phi + SENSOR.gyro_x_bias + np.random.randn()*SENSOR.gyro_sigma #!!! ... hmmm... a bias for x y and z....
+        phi = phi + SENSOR.mag_beta + np.random.randn()*SENSOR.mag_sigma 
         m_0 = phi - delta
 
         # phi_m = -np.arctan2(self._state.item(1), self._state.item(0))
@@ -133,32 +138,40 @@ class MavDynamics:
         rx = np.array([np.cos(theta), np.sin(theta)*np.sin(phi),np.sin(theta)*np.cos(phi)])
         ry = np.array([0,             np.cos(phi),            -np.sin(phi)])
         rz = np.array([-np.sin(theta),np.cos(theta)*np.sin(phi),np.cos(theta)*np.cos(phi)])
-        self._sensors.mag_x = rx*m_0
-        self._sensors.mag_y = ry*m_0
-        self._sensors.mag_z = rz*m_0 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! hmmm...
+        self._sensors.mag_x = (rx*m_0).item(0)
+        self._sensors.mag_y = (ry*m_0).item(1)
+        self._sensors.mag_z = (rz*m_0).item(2) # !!!hmmm...
 
         # simulate pressure sensors
         Va = self._Va
-        self._sensors.abs_pressure = MAV.rho*g*h_AGL + beta_abs + np.random.randn()*SENSOR.abs_pressure_sigma
-        self._sensors.diff_pressure = (MAV.rho*Va**2)/2 + beta + SENSOR.diff_pressure_sigma*np.random.randn() #!!!!!!!!!!!!!!!!!!!!11
+        # h_AGL = 1387 h of aircraft
+        beta_abs = 0 #!!!hmmm... 
+        beta = 0     #!!!hmmm... 
+        self._sensors.abs_pressure = MAV.rho*g*self._state.item(2) + beta_abs + np.random.randn()*SENSOR.abs_pres_sigma
+        self._sensors.diff_pressure = (MAV.rho*Va**2)/2 + beta + SENSOR.diff_pres_sigma*np.random.randn() 
+
         
         # simulate GPS sensor
         if self._t_gps >= SENSOR.ts_gps:
-            self._gps_eta_n = np.random.randn()*SENSOR.gps_eta_n_sigma
-            self._gps_eta_e = np.random.randn()*SENSOR.gps_eta_e_sigma
-            self._gps_eta_h = np.random.randn()*SENSOR.gps_eta_h_sigma
-            vn = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*vn_prev + self._gps_eta_h # !!!!!!!!!!!!!!!!! vn_prev used before declared
-            ve = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*ve_prev + self._gps_eta_h
-            vd = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*vd_prev + self._gps_eta_h
-            self._sensors.gps_n =  self._state.item(1) + vn_prev
-            self._sensors.gps_e =  self._state.item(2) + ve_prev
-            self._sensors.gps_h = -self._state.item(3) + vd_prev
-            self._sensors.gps_Vg = np.sqrt((Va*np.cos(phi)+omega_n)**2 + (Va*np.sin(phi)+omega_e)**2) + np.random.randn()*SENSOR.gps_Vg_sigma**2 #!!! why is this one squared?
-            self._sensors.gps_course = np.arctan2((Va*np.sin(phi)+omega_e),(Va*np.cos(phi)+omega_n)) + np.random.randn()*SENSOR.gps_course_sigma**2 #!!! what is Omega p q and r?
+            wind_n = self._wind.item(0)
+            wind_e = self._wind.item(1)
+            
+            
+            self._gps_eta_n = np.random.randn()*SENSOR.gps_n_sigma
+            self._gps_eta_e = np.random.randn()*SENSOR.gps_e_sigma
+            self._gps_eta_h = np.random.randn()*SENSOR.gps_h_sigma
+            vn = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*self.vn_prev + self._gps_eta_h # !!!!!!!!!!!!!!!!! vn_prev used before declared
+            ve = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*self.ve_prev + self._gps_eta_h
+            vd = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*self.vd_prev + self._gps_eta_h
+            self._sensors.gps_n =  self._state.item(1) + self.vn_prev
+            self._sensors.gps_e =  self._state.item(2) + self.ve_prev
+            self._sensors.gps_h = -self._state.item(3) + self.vd_prev
+            self._sensors.gps_Vg = np.sqrt((Va*np.cos(psi)+wind_n)**2 + (Va*np.sin(psi)+wind_e)**2) + np.random.randn()*SENSOR.gps_Vg_sigma**2 #!!! why is this one squared?
+            self._sensors.gps_course = np.arctan2((Va*np.sin(psi)+wind_e),(Va*np.cos(psi)+wind_n)) + np.random.randn()*SENSOR.gps_course_sigma**2 #!!! what is Omega p q and r?
             self._t_gps = 0.
-            vn_prev = vn
-            ve_prev = ve
-            vd_prev = vd
+            self.vn_prev = vn
+            self.ve_prev = ve
+            self.vd_prev = vd
         else:
             self._t_gps += self._ts_simulation
         return self._sensors
@@ -347,13 +360,16 @@ class MavDynamics:
         # yaw
         Mz = C1*b*(MAV.C_n_0 + MAV.C_n_beta*beta + MAV.C_n_p*(b/2/Va)*p + MAV.C_n_r*(b/2/Va)*r + MAV.C_n_delta_a*delta_a + MAV.C_n_delta_r*delta_r)
         
-        self._forces[0] = fx !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! don't seem right
-        self._forces[1] = fy
-        self._forces[2] = fz
+        # self._forces[0] = fx #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! don't seem right
+        # self._forces[1] = fy
+        # self._forces[2] = fz
 
         Fx = fx + thrust_prop + fg_x
         Fy = fy + fg_y
         Fz = fz + fg_z
+        self._forces[0] = Fx
+        self._forces[1] = Fy
+        self._forces[2] = Fz
         # forces_moments = np.array([[0, 0, 0, 0, 0, 0]]).T
         forces_moments = np.array([[Fx, Fy, Fz, Mx, My, Mz]]).T
         return forces_moments

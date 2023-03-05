@@ -68,7 +68,7 @@ h_command = Signals(dc_offset=100.0,
                     frequency=0.02)
 chi_command = Signals(dc_offset=np.radians(0.0),
                       amplitude=np.radians(45.0),
-                      start_time=10.0,
+                      start_time=10.0, # 10
                       frequency=0.015)
 
 # initialize the simulation time
@@ -87,7 +87,7 @@ while sim_time < end_time:
     # -------- autopilot -------------
     measurements = mav.sensors()  # get sensor measurements
     estimated_state = observer.update(measurements)  # estimate states from measurements
-    delta, commanded_state = autopilot.update(commands, estimated_state)
+    delta, commanded_state = autopilot.update(commands, mav.true_state)
 
     # -------- physical system -------------
     current_wind = wind.update()  # get the new wind vector

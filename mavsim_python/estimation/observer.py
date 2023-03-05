@@ -15,6 +15,8 @@ from tools.wrap import wrap
 from message_types.msg_state import MsgState
 from message_types.msg_sensors import MsgSensors
 
+import parameters.aerosonde_parameters as MAV # !!! should have already been here or what?
+
 class Observer:
     def __init__(self, ts_control, initial_measurements = MsgSensors()):
         # initialized estimated state message
@@ -23,15 +25,15 @@ class Observer:
         # alpha = Ts/(Ts + tau) where tau is the LPF time constant
 
         ##### TODO #####
-        self.lpf_gyro_x = AlphaFilter(alpha=0, y0=initial_measurements.gyro_x)
-        self.lpf_gyro_y = AlphaFilter(alpha=0, y0=initial_measurements.gyro_y)
-        self.lpf_gyro_z = AlphaFilter(alpha=0, y0=initial_measurements.gyro_z)
-        self.lpf_accel_x = AlphaFilter(alpha=0, y0=initial_measurements.accel_x)
-        self.lpf_accel_y = AlphaFilter(alpha=0, y0=initial_measurements.accel_y)
-        self.lpf_accel_z = AlphaFilter(alpha=0, y0=initial_measurements.accel_z)
+        self.lpf_gyro_x = AlphaFilter(alpha=0.9, y0=initial_measurements.gyro_x)
+        self.lpf_gyro_y = AlphaFilter(alpha=.9, y0=initial_measurements.gyro_y)
+        self.lpf_gyro_z = AlphaFilter(alpha=.9, y0=initial_measurements.gyro_z)
+        self.lpf_accel_x = AlphaFilter(alpha=.5, y0=initial_measurements.accel_x)
+        self.lpf_accel_y = AlphaFilter(alpha=.5, y0=initial_measurements.accel_y)
+        self.lpf_accel_z = AlphaFilter(alpha=.5, y0=initial_measurements.accel_z)
         # use alpha filters to low pass filter absolute and differential pressure
-        self.lpf_abs = AlphaFilter(alpha=0, y0=initial_measurements.abs_pressure)
-        self.lpf_diff = AlphaFilter(alpha=0, y0=initial_measurements.diff_pressure)
+        self.lpf_abs = AlphaFilter(alpha=0.9, y0=initial_measurements.abs_pressure)
+        self.lpf_diff = AlphaFilter(alpha=0.7, y0=initial_measurements.diff_pressure)
         # ekf for phi and theta
         self.attitude_ekf = EkfAttitude()
         # ekf for pn, pe, Vg, chi, wn, we, psi
@@ -40,15 +42,15 @@ class Observer:
     def update(self, measurement):
         ##### TODO #####
         # estimates for p, q, r are low pass filter of gyro minus bias estimate
-        self.estimated_state.p = 0
-        self.estimated_state.q = 0
-        self.estimated_state.r = 0
+        self.estimated_state.p = self.lpf_gyro_x.update(measurement.gyro_x)-0 #SENSOR.gyro_x_bias
+        self.estimated_state.q = self.lpf_gyro_y.update(measurement.gyro_y)-0 #SENSOR.gyro_y_bias
+        self.estimated_state.r = self.lpf_gyro_z.update(measurement.gyro_z)-0 #SENSOR.gyro_z_bias
 
         # invert sensor model to get altitude and airspeed
-        self.estimated_state.altitude = 0
-        self.estimated_state.Va = 0
+        self.estimated_state.altitude = self.lpf_abs.update(measurement.abs_pressure)/MAV.rho/MAV.gravity
+        self.estimated_state.Va = np.sqrt(2*self.lpf_diff.update(measurement.diff_pressure)/MAV.rho)
 
-        # estimate phi and theta with simple ekf
+        # estimate phi and theta, (roll and pitch) with simple ekf
         self.attitude_ekf.update(measurement, self.estimated_state)
 
         # estimate pn, pe, Vg, chi, wn, we, psi
@@ -72,7 +74,7 @@ class AlphaFilter:
 
     def update(self, u):
         ##### TODO #####
-        self.y = 0
+        self.y = self.alpha * self.y + (1 - self.alpha) * u
         return self.y
 
 
@@ -81,13 +83,13 @@ class EkfAttitude:
     def __init__(self):
         ##### TODO #####
         self.Q = np.diag([0, 0])
-        self.Q_gyro = np.diag([0, 0, 0])
-        self.R_accel = np.diag([0, 0, 0])
-        self.N = 1  # number of prediction step per sample
+        self.Q_gyro = np.diag([SENSOR.gyro_sigma, SENSOR.gyro_sigma, SENSOR.gyro_sigma])
+        self.R_accel = np.diag([SENSOR.accel_sigma, SENSOR.accel_sigma, SENSOR.accel_sigma])
+        self.N = 10  # number of prediction step per sample
         self.xhat = np.array([[0.0], [0.0]]) # initial state: phi, theta
         self.P = np.diag([0, 0])
         self.Ts = SIM.ts_control/self.N
-        self.gate_threshold = 0 #stats.chi2.isf(q=?, df=?)
+        self.gate_threshold = 999 #stats.chi2.isf(q=?, df=?) !!! turned off for now
 
     def update(self, measurement, state):
         self.propagate_model(measurement, state)
@@ -95,9 +97,11 @@ class EkfAttitude:
         state.phi = self.xhat.item(0)
         state.theta = self.xhat.item(1)
 
+
     def f(self, x, measurement, state):
         # system dynamics for propagation model: xdot = f(x, u)
         ##### TODO #####
+        f_ = measurement
         f_ = np.zeros((2,1))
         return f_
 
@@ -112,21 +116,28 @@ class EkfAttitude:
     def propagate_model(self, measurement, state):
         # model propagation
         ##### TODO #####
-        Tp = self.Ts
+        Tp = self.Ts/self.N
         for i in range(0, self.N):
-            self.P = np.zeros((2,2))
+            # Tp = Tout/self.N
+            self.xhat[:2] += Tp*self.f(self.xhat,measurement,state)
+            A = jacobian(self.f,self.xhat,measurement,state)
+            Ad = np.identity(2) + A*Tp + A@A*Tp**2
+            self.P = Ad@self.P@Ad.T + Tp**2*self.Q
+            # self.P = np.zeros((2,2))
 
     def measurement_update(self, measurement, state):
         # measurement updates
         h = self.h(self.xhat, measurement, state)
-        C = jacobian(self.h, self.xhat, measurement, state)
+        Ci = jacobian(self.h, self.xhat, measurement, state)
         y = np.array([[measurement.accel_x, measurement.accel_y, measurement.accel_z]]).T
-
         ##### TODO #####
         S_inv = np.zeros((3,3))
         if (y-h).T @ S_inv @ (y-h) < self.gate_threshold:
-            self.P = np.zeros((2,2))
-            self.xhat = np.zeros((2,1))
+            Li = self.P@Ci.T@np.linalg.inv(self.Q_gyro + Ci@self.P@Ci.T)
+            self.P = (np.identity(2) - Li@Ci) @ self.P @ (np.identity(2) - Li@Ci).T + Li@self.Q_gyro@Li.T
+            self.xhat = self.xhat + Li@(y - h)
+            # self.P = np.zeros((2,2))
+            # self.xhat = np.zeros((2,1))
 
 
 class EkfPosition:
