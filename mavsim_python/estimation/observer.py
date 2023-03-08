@@ -101,8 +101,12 @@ class EkfAttitude:
     def f(self, x, measurement, state):
         # system dynamics for propagation model: xdot = f(x, u)
         ##### TODO #####
-        f_ = measurement
         f_ = np.zeros((2,1))
+        p = measurement.roll
+        q = measurement.pitch
+        r = measurement.yaw
+        f_[0] = p + q*np.sin(state.phi)*np.tan(state.theta) + r*np.cos(state.phi)*np.tan(state.theta)
+        f_[1] = q*np.cos(state.phi) - r*np.sin(state.phi)
         return f_
 
     def h(self, x, measurement, state):
