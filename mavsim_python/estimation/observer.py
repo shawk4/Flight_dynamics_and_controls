@@ -112,12 +112,14 @@ class EkfAttitude:
     def h(self, x, measurement, state):
         # measurement model y
         ##### TODO #####
+        g = MAV.gravity
         h_ = np.array([[0],  # x-accel
                         [0],# y-accel
                         [0]])  # z-accel
-        h_[0,0] = measurement.accel_x
-        h_[1,0] = measurement.accel_y
-        h_[2,0] = measurement.accel_z
+        h_[0,0] = q*Va*np.sin(theta)+g*np.sin(theta) #measurement.accel_x
+        h_[1,0] = r*Va*np.cos(theta)-p*Va*np.sin(theta)-g*np.cos(theta)*np.sin(phi) #measurement.accel_y
+        h_[2,0] = -q*Va*np.cos(theta)-g*np.cos(theta)*np.cos(phi) #measurement.accel_z
+
         return h_
 
     def propagate_model(self, measurement, state):
