@@ -115,6 +115,9 @@ class EkfAttitude:
         h_ = np.array([[0],  # x-accel
                         [0],# y-accel
                         [0]])  # z-accel
+        h_[0,0] = measurement.accel_x
+        h_[1,0] = measurement.accel_y
+        h_[2,0] = measurement.accel_z
         return h_
 
     def propagate_model(self, measurement, state):
@@ -157,16 +160,16 @@ class EkfPosition:
                     0, #0.0001, # psi
                     ])
         self.R_gps = np.diag([
-                    0,  # y_gps_n
-                    0,  # y_gps_e
-                    0,  # y_gps_Vg
-                    0,  # y_gps_course
+                    SENSOR.gps_n_sigma,  # y_gps_n
+                    SENSOR.gps_e_sigma,  # y_gps_e
+                    SENSOR.gps_Vg_sigma,  # y_gps_Vg
+                    SENSOR.gps_course_sigma,  # y_gps_course
                     ])
         self.R_pseudo = np.diag([
                     0,  # pseudo measurement #1
                     0,  # pseudo measurement #2
                     ])
-        self.N = 1  # number of prediction step per sample
+        self.N = 10  # number of prediction step per sample
         self.Ts = (SIM.ts_control / self.N)
         self.xhat = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]])
         self.P = np.diag([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -198,6 +201,7 @@ class EkfPosition:
                        [0.0],
                        [0],
                        ])
+        f_[0] = 0
         return f_
 
     def h_gps(self, x, measurement, state):
