@@ -113,9 +113,9 @@ class MavDynamics:
         "Return value of sensors on MAV: gyros, accels, absolute_pressure, dynamic_pressure, GPS"
         ##### TODO #####
         # simulate rate gyros(units are rad / sec)
-        self._sensors.gyro_x = self._state.item(10) + SENSOR.gyro_x_bias + np.random.randn()*SENSOR.gyro_sigma # !!! suspect this is the wrong p q and r self._state.item(10) 
-        self._sensors.gyro_y = self._state.item(11) + SENSOR.gyro_y_bias + np.random.randn()*SENSOR.gyro_sigma
-        self._sensors.gyro_z = self._state.item(12) + SENSOR.gyro_z_bias + np.random.randn()*SENSOR.gyro_sigma
+        self._sensors.gyro_x = self._state.item(10) + SENSOR.gyro_x_bias +np.random.randn()*SENSOR.gyro_sigma
+        self._sensors.gyro_y = self._state.item(11) + np.random.randn()*SENSOR.gyro_sigma
+        self._sensors.gyro_z = self._state.item(12) + np.random.randn()*SENSOR.gyro_sigma
 
         # simulate accelerometers(units of g)
         mass = MAV.mass
@@ -144,30 +144,22 @@ class MavDynamics:
 
         # simulate pressure sensors
         Va = self._Va
-        # h_AGL = 1387 h of aircraft
-        beta_abs = 0 #!!!hmmm... 
-        beta = 0     #!!!hmmm... 
-        self._sensors.abs_pressure = MAV.rho*g*self._state.item(2) + beta_abs + np.random.randn()*SENSOR.abs_pres_sigma
-        self._sensors.diff_pressure = (MAV.rho*Va**2)/2 + beta + SENSOR.diff_pres_sigma*np.random.randn() 
-
+        self._sensors.abs_pressure = MAV.rho*g*h  + np.random.randn()*SENSOR.abs_pressure_sigma
+        self._sensors.diff_pressure = (MAV.rho*Va**2)/2 + SENSOR.diff_pressure_sigma*np.random.randn() 
         
         # simulate GPS sensor
         if self._t_gps >= SENSOR.ts_gps:
-            wind_n = self._wind.item(0)
-            wind_e = self._wind.item(1)
-            
-            
-            self._gps_eta_n = np.random.randn()*SENSOR.gps_n_sigma
-            self._gps_eta_e = np.random.randn()*SENSOR.gps_e_sigma
-            self._gps_eta_h = np.random.randn()*SENSOR.gps_h_sigma
-            vn = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*self.vn_prev + self._gps_eta_h # !!!!!!!!!!!!!!!!! vn_prev used before declared
-            ve = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*self.ve_prev + self._gps_eta_h
-            vd = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*self.vd_prev + self._gps_eta_h
-            self._sensors.gps_n =  self._state.item(1) + self.vn_prev
-            self._sensors.gps_e =  self._state.item(2) + self.ve_prev
-            self._sensors.gps_h = -self._state.item(3) + self.vd_prev
-            self._sensors.gps_Vg = np.sqrt((Va*np.cos(psi)+wind_n)**2 + (Va*np.sin(psi)+wind_e)**2) + np.random.randn()*SENSOR.gps_Vg_sigma**2 #!!! why is this one squared?
-            self._sensors.gps_course = np.arctan2((Va*np.sin(psi)+wind_e),(Va*np.cos(psi)+wind_n)) + np.random.randn()*SENSOR.gps_course_sigma**2 #!!! what is Omega p q and r?
+            self._gps_eta_n = np.random.randn()*SENSOR.gps_eta_n_sigma
+            self._gps_eta_e = np.random.randn()*SENSOR.gps_eta_e_sigma
+            self._gps_eta_h = np.random.randn()*SENSOR.gps_eta_h_sigma
+            vn = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*vn_prev + self._gps_eta_h 
+            ve = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*ve_prev + self._gps_eta_h
+            vd = np.exp(-SENSOR.gps_k*SENSOR.ts_gps)*vd_prev + self._gps_eta_h
+            self._sensors.gps_n =  self._state.item(1) + vn_prev
+            self._sensors.gps_e =  self._state.item(2) + ve_prev
+            self._sensors.gps_h = -self._state.item(3) + vd_prev
+            self._sensors.gps_Vg = np.sqrt((Va*np.cos(phi)+omega_n)**2 + (Va*np.sin(phi)+omega_e)**2) + np.random.normal(0,SENSOR.gps_Vg_sigma)*SENSOR.gps_Vg_sigma #!!! why is this one squared?
+            self._sensors.gps_course = np.arctan2((Va*np.sin(phi)+omega_e),(Va*np.cos(phi)+omega_n)) + np.random.randn()*SENSOR.gps_course_sigma #!!! what is Omega p q and r?
             self._t_gps = 0.
             self.vn_prev = vn
             self.ve_prev = ve
