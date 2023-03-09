@@ -42,9 +42,9 @@ class Observer:
     def update(self, measurement):
         ##### TODO #####
         # estimates for p, q, r are low pass filter of gyro minus bias estimate
-        self.estimated_state.p = self.lpf_gyro_x.update(measurement.gyro_x)-0 #SENSOR.gyro_x_bias
-        self.estimated_state.q = self.lpf_gyro_y.update(measurement.gyro_y)-0 #SENSOR.gyro_y_bias
-        self.estimated_state.r = self.lpf_gyro_z.update(measurement.gyro_z)-0 #SENSOR.gyro_z_bias
+        self.estimated_state.p = self.lpf_gyro_x.update(measurement.gyro_x)
+        self.estimated_state.q = self.lpf_gyro_y.update(measurement.gyro_y)
+        self.estimated_state.r = self.lpf_gyro_z.update(measurement.gyro_z)
 
         # invert sensor model to get altitude and airspeed
         self.estimated_state.altitude = self.lpf_abs.update(measurement.abs_pressure)/MAV.rho/MAV.gravity
@@ -102,24 +102,29 @@ class EkfAttitude:
         # system dynamics for propagation model: xdot = f(x, u)
         ##### TODO #####
         f_ = np.zeros((2,1))
-        p = measurement.roll
-        q = measurement.pitch
-        r = measurement.yaw
-        f_[0] = p + q*np.sin(state.phi)*np.tan(state.theta) + r*np.cos(state.phi)*np.tan(state.theta)
-        f_[1] = q*np.cos(state.phi) - r*np.sin(state.phi)
+        p = measurement.gyro_x
+        q = measurement.gyro_y
+        r = measurement.gyro_z #!!! What in the world am I doing with state ???
+        f_[0] = state.phi + p + q*np.sin(x[0])*  np.tan(x[1]) + r*np.cos(x[0])*np.tan(x[1])
+        f_[1] = state.theta +   q*np.cos(x[0])-r*np.sin(x[0])
         return f_
 
     def h(self, x, measurement, state):
         # measurement model y
         ##### TODO #####
+        phi = x[0]
+        theta = x[1]
         g = MAV.gravity
-        h_ = np.array([[0],  # x-accel
+        Va = state.Va
+        p = measurement.gyro_x
+        q = measurement.gyro_y
+        r = measurement.gyro_z
+        h_ = np.array([[0],  # x-accel #!!! why where these commented in as accelerations nothing about that in the book slides maby?
                         [0],# y-accel
                         [0]])  # z-accel
-        h_[0,0] = q*Va*np.sin(theta)+g*np.sin(theta) #measurement.accel_x
-        h_[1,0] = r*Va*np.cos(theta)-p*Va*np.sin(theta)-g*np.cos(theta)*np.sin(phi) #measurement.accel_y
-        h_[2,0] = -q*Va*np.cos(theta)-g*np.cos(theta)*np.cos(phi) #measurement.accel_z
-
+        h_[0,0] =  q*Va*np.sin(theta)+g*   np.sin(theta) #measurement.accel_x
+        h_[1,0] =  r*Va*np.cos(theta)-p*Va*np.sin(theta)-g*np.cos(theta)*np.sin(phi) #measurement.accel_y
+        h_[2,0] = -q*Va*np.cos(theta)-g*   np.cos(theta)  *np.cos(phi) #measurement.accel_z
         return h_
 
     def propagate_model(self, measurement, state):
