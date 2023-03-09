@@ -159,7 +159,6 @@ class MavDynamics:
             self._sensors.gps_h = -self._state.item(3) + self._gps_eta_h
             self._sensors.gps_Vg = np.sqrt((pdot.item(0))**2 + (pdot.item(1))**2) + np.random.normal(0,SENSOR.gps_Vg_sigma)*SENSOR.gps_Vg_sigma #!!! solution here does not match the book
             self._sensors.gps_course = np.arctan2(pdot.item(0),pdot.item(1)) + np.random.randn()*SENSOR.gps_course_sigma #!!! solution here does not match the book
-            
             # self._sensors.gps_Vg = np.sqrt((Va*np.cos(phi)+wind_n)**2 + (Va*np.sin(phi)+wind_e)**2) + np.random.normal(0,SENSOR.gps_Vg_sigma)*SENSOR.gps_Vg_sigma #!!! why is this one squared?
             # self._sensors.gps_course = np.arctan2((Va*np.sin(phi)+wind_e),(Va*np.cos(phi)+wind_n)) + np.random.randn()*SENSOR.gps_course_sigma #!!! what is Omega p q and r?
             self._t_gps = 0.
@@ -354,9 +353,6 @@ class MavDynamics:
         # yaw
         Mz = C1*b*(MAV.C_n_0 + MAV.C_n_beta*beta + MAV.C_n_p*(b/2/Va)*p + MAV.C_n_r*(b/2/Va)*r + MAV.C_n_delta_a*delta_a + MAV.C_n_delta_r*delta_r)
         
-        # self._forces[0] = fx #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! don't seem right
-        # self._forces[1] = fy
-        # self._forces[2] = fz
 
         Fx = fx + thrust_prop + fg_x
         Fy = fy + fg_y
