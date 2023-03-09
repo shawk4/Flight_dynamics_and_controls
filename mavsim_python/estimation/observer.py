@@ -213,8 +213,6 @@ class EkfPosition:
         Va = state.Va
         q = measurement.gyro_y
         r = measurement.gyro_z
-        phi = state.phi
-        theta = state.theta
         # other
         g = MAV.gravity
         phi_dot = q*np.sin(phi)/np.cos(theta)-r*np.cos(phi)/np.cos(theta)
