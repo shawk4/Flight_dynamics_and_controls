@@ -101,19 +101,21 @@ class EkfAttitude:
     def f(self, x, measurement, state):
         # system dynamics for propagation model: xdot = f(x, u)
         ##### TODO #####
+        phi = x.item(0)
+        theta = x.item(1)
         f_ = np.zeros((2,1))
         p = measurement.gyro_x
         q = measurement.gyro_y
-        r = measurement.gyro_z #!!! What in the world am I doing with state ???
-        f_[0] = state.phi + p + q*np.sin(x[0])*  np.tan(x[1]) + r*np.cos(x[0])*np.tan(x[1])
-        f_[1] = state.theta +   q*np.cos(x[0])-r*np.sin(x[0])
+        r = measurement.gyro_z #!!! What in the world am I doing with state ??? possibly just updating it? it is my currnent unpropagated state
+        f_[0] =  p + q*np.sin(state.phi + phi)*  np.tan(state.theta + theta) + r*np.cos(state.phi+phi)*np.tan(state.theta+theta)
+        f_[1] =  q*np.cos(state.phi+phi)-r*np.sin(state.phi+phi)
         return f_
 
     def h(self, x, measurement, state):
         # measurement model y
         ##### TODO #####
-        phi = x[0]
-        theta = x[1]
+        phi = x.item(0)
+        theta = x.item(1)
         g = MAV.gravity
         Va = state.Va
         p = measurement.gyro_x
@@ -200,57 +202,91 @@ class EkfPosition:
 
     def f(self, x, measurement, state):
         # system dynamics for propagation model: xdot = f(x, u)
-        f_ = np.array([[0],
-                       [0],
-                       [0],
-                       [0],
+        # xhat estimated states
+        Vg  = x.item(2)
+        chi = x.item(3)
+        wn  = x.item(4)
+        we  = x.item(5)
+        psi = x.item(6)
+        # u commanded inputs (state?)
+        Va = state.Va
+        q = state.q
+        r = state.r
+        phi = state.phi
+        theta = state.theta
+        # other
+        g = MAV.gravity
+        phi_dot = q*np.sin(phi)/np.cos(theta)-r*np.cos(phi)/np.cos(theta)
+
+        f_ = np.array([[Vg*np.cos(chi)],
+                       [Vg*np.sin(chi)],
+                       [Va/Vg*phi_dot*(-wn*np.sin(phi)+we*np.cos(phi))],
+                       [g/Vg*np.tan(phi)*np.cos(chi-psi)],
                        [0.0],
                        [0.0],
-                       [0],
-                       ])
-        f_[0] = 0
+                       [phi_dot]])
         return f_
 
     def h_gps(self, x, measurement, state):
         # measurement model for gps measurements
+        pn = x.item(0)
+        pe = x.item(1)
+        Vg = x.item(2)
+        chi = x.item(3)
+
         h_ = np.array([
-            [0], #pn
-            [0], #pe
-            [0], #Vg
-            [0], #chi
+            [pn], #pn
+            [pe], #pe
+            [Vg], #Vg
+            [chi], #chi
         ])
         return h_
 
     def h_pseudo(self, x, measurement, state):
         # measurement model for wind triangale pseudo measurement
+        # x hat estimated states
+        Vg  = x.item(2)
+        chi = x.item(3)
+        wn  = x.item(4)
+        we  = x.item(5)
+        
+        # u commanded inputs
+        Va = state.Va
+        phi = state.phi
+
         h_ = np.array([
-            [0],  # wind triangle x
-            [0],  # wind triangle y
+            [Va*np.cos(phi)+wn-Vg*np.cos(chi)],  # wind triangle x
+            [Va*np.sin(phi)+we-Vg*np.sin(chi)],  # wind triangle y
         ])
         return h_
 
     def propagate_model(self, measurement, state):
         # model propagation
+        Tp = self.Ts/self.N
         for i in range(0, self.N):
             # propagate model
             self.xhat = np.zeros((7,1))
-
+            self.xhat[:7] = self.xhat + Tp*self.f(self.xhat,measurement,state)
             # compute Jacobian
-            
+            A = jacobian(self.f,self.xhat,measurement,state)
             # convert to discrete time models
-            
+            Ad = np.identity(7) + A*Tp + A@A*Tp**2
             # update P with discrete time model
-            self.P = np.zeros((7,7))
+            self.P = Ad@self.P@Ad.T + Tp**2*self.Q
+            # self.P = np.zeros((7,7))
 
     def measurement_update(self, measurement, state):
         # always update based on wind triangle pseudo measurement
         h = self.h_pseudo(self.xhat, measurement, state)
-        C = jacobian(self.h_pseudo, self.xhat, measurement, state)
+        Ci = jacobian(self.h_pseudo, self.xhat, measurement, state)
         y = np.array([[0, 0]]).T
         S_inv = np.zeros((2,2))
         if (y-h).T @ S_inv @ (y-h) < self.pseudo_threshold:
-            self.P = np.zeros((7,7))
-            self.xhat = np.zeros((7,1))
+            Li = self.P@Ci.T@np.linalg.inv(self.R_pseudo+Ci@self.P@Ci.T)
+            self.P = (np.identity(2) - Li@Ci) @ self.P
+            self.xhat = self.xhat + Li @ (y - h) 
+            # self.P = np.zeros((7,7))
+            # self.xhat = np.zeros((7,1))
 
         # only update GPS when one of the signals changes
         if (measurement.gps_n != self.gps_n_old) \
@@ -267,8 +303,11 @@ class EkfPosition:
                            y_chi]]).T
             S_inv = np.zeros((4,4))
             if (y-h).T @ S_inv @ (y-h) < self.gps_threshold:
-                self.P = np.zeros((7,7))
-                self.xhat = np.zeros((7,1))
+                Li = self.P@C.T@np.linalg.inv(self.R_gps + C@self.P@C.T)
+                self.P = (np.identity(4) - Li@C) @ self.P
+                self.xhat = self.xhat + Li @ (y - h)
+                # self.P = np.zeros((7,7))
+                # self.xhat = np.zeros((7,1))
 
             # update stored GPS signals
             self.gps_n_old = measurement.gps_n
