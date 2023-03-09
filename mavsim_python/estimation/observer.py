@@ -68,7 +68,7 @@ class Observer:
 class AlphaFilter:
     # alpha filter implements a simple low pass filter
     # y[k] = alpha * y[k-1] + (1-alpha) * u[k]
-    def __init__(self, alpha=0.5, y0=0.0):
+    def __init__(self, alpha=0.7, y0=0.0):
         self.alpha = alpha  # filter parameter
         self.y = y0  # initial condition
 
@@ -82,11 +82,12 @@ class EkfAttitude:
     # implement continous-discrete EKF to estimate roll and pitch angles
     def __init__(self):        
         ##### TODO #####
-        self.Q = np.diag([1, 1] )
+        self.Q = np.diag([0.1, 0.1])
         self.Q_gyro = np.diag([SENSOR.gyro_sigma, SENSOR.gyro_sigma, SENSOR.gyro_sigma])
         self.R_accel = np.diag([SENSOR.accel_sigma, SENSOR.accel_sigma, SENSOR.accel_sigma])
         self.N = 10  # number of prediction step per sample
         self.xhat = np.array([[0.0], [0.0]]) # initial state: phi, theta
+        # self.xhat = np.array([[1.0], [1.0]]) # initial state: phi, theta
         self.P = np.diag([0, 0])
         self.Ts = SIM.ts_control/self.N
         self.gate_threshold = 999 #stats.chi2.isf(q=?, df=?) !!! turned off for now
@@ -106,7 +107,7 @@ class EkfAttitude:
         f_ = np.zeros((2,1))
         p = measurement.gyro_x
         q = measurement.gyro_y
-        r = measurement.gyro_z #!!! What in the world am I doing with state ??? possibly just updating it? it is my currnent unpropagated state
+        r = measurement.gyro_z #!!! What in the world am I doing with state ??? it is my currnent unpropagated state
         f_[0] =  p + q*np.sin(phi)*  np.tan(theta) + r*np.cos(phi)*np.tan(theta)
         f_[1] =  q*np.cos(phi)-r*np.sin(phi)
         return f_
@@ -117,16 +118,13 @@ class EkfAttitude:
         phi = x.item(0)
         theta = x.item(1)
         g = MAV.gravity
-        Va = state.Va
-        p = state.p
-        q = state.q
-        r = state.r
-        h_ = np.array([[0],  # x-accel #!!! why where these commented in as accelerations nothing about that in the book slides maby?
-                        [0],# y-accel
-                        [0]])  # z-accel
-        h_[0,0] =  q*Va*np.sin(theta)+g*   np.sin(theta) #measurement.accel_x
-        h_[1,0] =  r*Va*np.cos(theta)-p*Va*np.sin(theta)-g*np.cos(theta)*np.sin(phi) #measurement.accel_y
-        h_[2,0] = -q*Va*np.cos(theta)-g*   np.cos(theta)  *np.cos(phi) #measurement.accel_z
+        Va = np.sqrt(2*measurement.diff_pressure)/MAV.rho
+        p = measurement.gyro_x
+        q = measurement.gyro_y
+        r = measurement.gyro_z
+        h_ = np.array([ [q*Va*np.sin(theta)+g*   np.sin(theta) ], # x-accel #!!! why where these commented in as accelerations nothing about that in the book or slides.
+                        [r*Va*np.cos(theta)-p*Va*np.sin(theta)-g*np.cos(theta)*np.sin(phi) ], # y-accel
+                        [-q*Va*np.cos(theta)-g*   np.cos(theta)  *np.cos(phi) ]])# z-accel
         return h_
 
     def propagate_model(self, measurement, state):
@@ -160,13 +158,13 @@ class EkfPosition:
     # implement continous-discrete EKF to estimate pn, pe, Vg, chi, wn, we, psi
     def __init__(self):
         self.Q = np.diag([
-                    0,  # pn
-                    0,  # pe
-                    0,  # Vg
-                    0, # chi
-                    0, # wn
-                    0, # we
-                    0, #0.0001, # psi
+                    0.1,  # pn
+                    0.1,  # pe
+                    0.1,  # Vg
+                    0.1, # chi
+                    0.1, # wn
+                    0.1, # we
+                    0.1, #0.0001, # psi
                     ])
         self.R_gps = np.diag([
                     SENSOR.gps_n_sigma,  # y_gps_n
@@ -175,13 +173,13 @@ class EkfPosition:
                     SENSOR.gps_course_sigma,  # y_gps_course
                     ])
         self.R_pseudo = np.diag([
-                    0,  # pseudo measurement #1
-                    0,  # pseudo measurement #2
+                    0.01,  # pseudo measurement #1
+                    0.01,  # pseudo measurement #2
                     ])
         self.N = 10  # number of prediction step per sample
         self.Ts = (SIM.ts_control / self.N)
         # self.xhat = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]])
-        self.xhat = np.array([[1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0]])
+        self.xhat = np.array([[0.0], [0.0], [25.0], [0.0], [0.0], [0.0], [0.0]])
         self.P = np.diag([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.gps_n_old = 0
         self.gps_e_old = 0
@@ -210,7 +208,9 @@ class EkfPosition:
         we  = x.item(5)
         psi = x.item(6)
         # u commanded inputs (state?)
-        Va = state.Va
+        Va = np.sqrt(2*measurement.diff_pressure)/MAV.rho
+        phi = state.phi
+        theta = state.theta
         q = measurement.gyro_y
         r = measurement.gyro_z
         # other
@@ -250,7 +250,7 @@ class EkfPosition:
         we  = x.item(5)
         
         # u commanded inputs
-        Va = state.Va
+        Va = np.sqrt(2*measurement.diff_pressure)/MAV.rho
         phi = state.phi
 
         h_ = np.array([
@@ -264,7 +264,7 @@ class EkfPosition:
         Tp = self.Ts/self.N
         for i in range(0, self.N):
             # propagate model
-            self.xhat = np.zeros((7,1))
+            # self.xhat = np.zeros((7,1))
             self.xhat[:7] = self.xhat + Tp*self.f(self.xhat,measurement,state)
             # compute Jacobian
             A = jacobian(self.f,self.xhat,measurement,state)
@@ -303,7 +303,7 @@ class EkfPosition:
             S_inv = np.zeros((4,4))
             if (y-h).T @ S_inv @ (y-h) < self.gps_threshold:
                 Li = self.P@C.T@np.linalg.inv(self.R_gps + C@self.P@C.T)
-                self.P = (np.identity(4) - Li@C) @ self.P
+                self.P = (np.identity(7) - Li@C) @ self.P
                 self.xhat = self.xhat + Li @ (y - h)
                 # self.P = np.zeros((7,7))
                 # self.xhat = np.zeros((7,1))
