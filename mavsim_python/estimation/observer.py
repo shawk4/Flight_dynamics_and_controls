@@ -80,9 +80,9 @@ class AlphaFilter:
 
 class EkfAttitude:
     # implement continous-discrete EKF to estimate roll and pitch angles
-    def __init__(self):
+    def __init__(self):        
         ##### TODO #####
-        self.Q = np.diag([0, 0])
+        self.Q = np.diag([1, 1] )
         self.Q_gyro = np.diag([SENSOR.gyro_sigma, SENSOR.gyro_sigma, SENSOR.gyro_sigma])
         self.R_accel = np.diag([SENSOR.accel_sigma, SENSOR.accel_sigma, SENSOR.accel_sigma])
         self.N = 10  # number of prediction step per sample
@@ -107,8 +107,8 @@ class EkfAttitude:
         p = measurement.gyro_x
         q = measurement.gyro_y
         r = measurement.gyro_z #!!! What in the world am I doing with state ??? possibly just updating it? it is my currnent unpropagated state
-        f_[0] =  p + q*np.sin(state.phi + phi)*  np.tan(state.theta + theta) + r*np.cos(state.phi+phi)*np.tan(state.theta+theta)
-        f_[1] =  q*np.cos(state.phi+phi)-r*np.sin(state.phi+phi)
+        f_[0] =  p + q*np.sin(phi)*  np.tan(theta) + r*np.cos(phi)*np.tan(theta)
+        f_[1] =  q*np.cos(phi)-r*np.sin(phi)
         return f_
 
     def h(self, x, measurement, state):
@@ -118,9 +118,9 @@ class EkfAttitude:
         theta = x.item(1)
         g = MAV.gravity
         Va = state.Va
-        p = measurement.gyro_x
-        q = measurement.gyro_y
-        r = measurement.gyro_z
+        p = state.p
+        q = state.q
+        r = state.r
         h_ = np.array([[0],  # x-accel #!!! why where these commented in as accelerations nothing about that in the book slides maby?
                         [0],# y-accel
                         [0]])  # z-accel
@@ -180,7 +180,8 @@ class EkfPosition:
                     ])
         self.N = 10  # number of prediction step per sample
         self.Ts = (SIM.ts_control / self.N)
-        self.xhat = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]])
+        # self.xhat = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]])
+        self.xhat = np.array([[1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0]])
         self.P = np.diag([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.gps_n_old = 0
         self.gps_e_old = 0
@@ -210,8 +211,8 @@ class EkfPosition:
         psi = x.item(6)
         # u commanded inputs (state?)
         Va = state.Va
-        q = state.q
-        r = state.r
+        q = measurement.gyro_y
+        r = measurement.gyro_z
         phi = state.phi
         theta = state.theta
         # other
