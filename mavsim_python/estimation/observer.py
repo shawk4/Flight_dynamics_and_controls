@@ -57,7 +57,7 @@ class Observer:
         self.position_ekf.update(measurement, self.estimated_state)
 
         # not estimating these
-        self.estimated_state.alpha = 0.0
+        self.estimated_state.alpha = self.estimated_state.theta#0.0
         self.estimated_state.beta = 0.0
         self.estimated_state.bx = 0.0
         self.estimated_state.by = 0.0
@@ -83,10 +83,10 @@ class EkfAttitude:
     def __init__(self):        
         ##### TODO #####
         self.Q = np.diag([0.1, 0.1])
-        # self.Q_gyro = np.diag([SENSOR.gyro_sigma, SENSOR.gyro_sigma, SENSOR.gyro_sigma])
-        # self.R_accel = np.diag([SENSOR.accel_sigma, SENSOR.accel_sigma, SENSOR.accel_sigma])
-        self.Q_gyro = np.diag([0.1, 0.1, 0.1])
-        self.R_accel = np.diag([0.0001, 0.0001, 0.0001])
+        self.Q_gyro = np.diag([SENSOR.gyro_sigma, SENSOR.gyro_sigma, SENSOR.gyro_sigma])
+        self.R_accel = np.diag([SENSOR.accel_sigma, SENSOR.accel_sigma, SENSOR.accel_sigma])
+        # self.Q_gyro = np.diag([0.1, 0.1, 0.1])
+        # self.R_accel = np.diag([0.000001, 0.000001, 0.000001])
         self.N = 10  # number of prediction step per sample
         self.xhat = np.array([[0.0], [0.0]]) # initial state: phi, theta
         self.P = np.diag([0, 0])
@@ -169,14 +169,14 @@ class EkfPosition:
                     0.0001, #0.0001, # psi
                     ])
         self.R_gps = np.diag([
-                    0,#SENSOR.gps_n_sigma,  # y_gps_n
-                    0,#SENSOR.gps_e_sigma,  # y_gps_e
-                    0,#SENSOR.gps_Vg_sigma,  # y_gps_Vg
-                    0,#SENSOR.gps_course_sigma,  # y_gps_course
+                    SENSOR.gps_n_sigma,  # y_gps_n
+                    SENSOR.gps_e_sigma,  # y_gps_e
+                    SENSOR.gps_Vg_sigma,  # y_gps_Vg
+                    SENSOR.gps_course_sigma,  # y_gps_course
                     ])
         self.R_pseudo = np.diag([
-                    0.0,  # pseudo measurement #1
-                    0.0,  # pseudo measurement #2
+                    0.01, # pseudo measurement #1
+                    0.01 # pseudo measurement #2
                     ])
         self.N = 10  # number of prediction step per sample
         self.Ts = (SIM.ts_control / self.N)
