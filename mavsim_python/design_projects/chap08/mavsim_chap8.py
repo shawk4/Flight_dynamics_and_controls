@@ -82,7 +82,7 @@ while sim_time < end_time:
     # -------autopilot commands-------------
     commands.airspeed_command = Va_command.polynomial(sim_time)
     commands.course_command = chi_command.polynomial(sim_time)
-    commands.altitude_command = h_command.polynomial(sim_time)
+    # commands.altitude_command = h_command.polynomial(sim_time)
 
     # -------- autopilot -------------
     measurements = mav.sensors()  # get sensor measurements
@@ -91,6 +91,7 @@ while sim_time < end_time:
 
     # -------- physical system -------------
     current_wind = wind.update()  # get the new wind vector
+    current_wind = np.array([[0.,0.,0.,0., 0., 0.]]).T  # turn off the wind vector
     mav.update(delta, current_wind)  # propagate the MAV dynamics
 
     # -------- update viewer -------------

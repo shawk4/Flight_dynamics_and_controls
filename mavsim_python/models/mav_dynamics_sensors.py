@@ -157,8 +157,8 @@ class MavDynamics:
             self._sensors.gps_n =  self._state.item(0) + self._gps_eta_h
             self._sensors.gps_e =  self._state.item(1) + self._gps_eta_h
             self._sensors.gps_h = -self._state.item(2) + self._gps_eta_h
-            self._sensors.gps_Vg = np.sqrt((pdot.item(0))**2 + (pdot.item(1))**2) + np.random.normal(0,SENSOR.gps_Vg_sigma)*SENSOR.gps_Vg_sigma #!!! solution here does not match the book
-            self._sensors.gps_course = np.arctan2(pdot.item(0),pdot.item(1)) + np.random.randn()*SENSOR.gps_course_sigma #!!! solution here does not match the book
+            self._sensors.gps_Vg = np.sqrt((pdot.item(0))**2 + (pdot.item(1))**2) # + np.random.normal(0,SENSOR.gps_Vg_sigma)#!!! solution here does not match the book
+            self._sensors.gps_course = np.arctan2(pdot.item(0),pdot.item(1))      # + np.random.normal(0,SENSOR.gps_course_sigma)#!!! solution here does not match the book
             # self._sensors.gps_Vg = np.sqrt((Va*np.cos(phi)+wind_n)**2 + (Va*np.sin(phi)+wind_e)**2) + np.random.normal(0,SENSOR.gps_Vg_sigma)*SENSOR.gps_Vg_sigma #!!! why is this one squared?
             # self._sensors.gps_course = np.arctan2((Va*np.sin(phi)+wind_e),(Va*np.cos(phi)+wind_n)) + np.random.randn()*SENSOR.gps_course_sigma #!!! what is Omega p q and r?
             self._t_gps = 0.

@@ -48,7 +48,7 @@ class Observer:
 
         # invert sensor model to get altitude and airspeed
         self.estimated_state.altitude = self.lpf_abs.update(measurement.abs_pressure)/MAV.rho/MAV.gravity
-        self.estimated_state.Va = np.sqrt(2*self.lpf_diff.update(measurement.diff_pressure)/MAV.rho)
+        self.estimated_state.Va = np.sqrt(2/MAV.rho*self.lpf_diff.update(measurement.diff_pressure))
 
         # estimate phi and theta, (roll and pitch) with simple ekf
         self.attitude_ekf.update(measurement, self.estimated_state)
@@ -83,11 +83,12 @@ class EkfAttitude:
     def __init__(self):        
         ##### TODO #####
         self.Q = np.diag([0.1, 0.1])
-        self.Q_gyro = np.diag([SENSOR.gyro_sigma, SENSOR.gyro_sigma, SENSOR.gyro_sigma])
-        self.R_accel = np.diag([SENSOR.accel_sigma, SENSOR.accel_sigma, SENSOR.accel_sigma])
+        # self.Q_gyro = np.diag([SENSOR.gyro_sigma, SENSOR.gyro_sigma, SENSOR.gyro_sigma])
+        # self.R_accel = np.diag([SENSOR.accel_sigma, SENSOR.accel_sigma, SENSOR.accel_sigma])
+        self.Q_gyro = np.diag([0.1, 0.1, 0.1])
+        self.R_accel = np.diag([0.0001, 0.0001, 0.0001])
         self.N = 10  # number of prediction step per sample
         self.xhat = np.array([[0.0], [0.0]]) # initial state: phi, theta
-        # self.xhat = np.array([[1.0], [1.0]]) # initial state: phi, theta
         self.P = np.diag([0, 0])
         self.Ts = SIM.ts_control/self.N
         self.gate_threshold = 999 #stats.chi2.isf(q=?, df=?) !!! turned off for now
@@ -108,7 +109,7 @@ class EkfAttitude:
         p = measurement.gyro_x
         q = measurement.gyro_y
         r = measurement.gyro_z #!!! What in the world am I doing with state ??? it is my currnent unpropagated state
-        f_[0] =  p + q*np.sin(phi)*  np.tan(theta) + r*np.cos(phi)*np.tan(theta)
+        f_[0] =  p + q*np.sin(phi)*np.tan(theta) + r*np.cos(phi)*np.tan(theta)
         f_[1] =  q*np.cos(phi)-r*np.sin(phi)
         return f_
 
@@ -118,25 +119,26 @@ class EkfAttitude:
         phi = x.item(0)
         theta = x.item(1)
         g = MAV.gravity
-        Va = np.sqrt(2*measurement.diff_pressure)/MAV.rho
+        Va = np.sqrt(2/MAV.rho*measurement.diff_pressure)
         p = measurement.gyro_x
         q = measurement.gyro_y
         r = measurement.gyro_z
-        h_ = np.array([ [q*Va*np.sin(theta)+g*   np.sin(theta) ], # x-accel #!!! why where these commented in as accelerations nothing about that in the book or slides.
+        #predicting acceleration measurements
+        h_ = np.array([ [q*Va*np.sin(theta)+g*   np.sin(theta) ], # x-accel 
                         [r*Va*np.cos(theta)-p*Va*np.sin(theta)-g*np.cos(theta)*np.sin(phi) ], # y-accel
-                        [-q*Va*np.cos(theta)-g*   np.cos(theta)  *np.cos(phi) ]])# z-accel
+                        [-q*Va*np.cos(theta)-  g*np.cos(theta)*np.cos(phi) ]])# z-accel
         return h_
 
     def propagate_model(self, measurement, state):
         # model propagation
         ##### TODO #####
-        Tp = self.Ts/self.N
+        Tp = self.Ts #/self.N
         for i in range(0, self.N):
             # Tp = Tout/self.N
-            self.xhat[:2] += Tp*self.f(self.xhat,measurement,state)
+            self.xhat[:2] = self.xhat[:2] + Tp*self.f(self.xhat,measurement,state)
             A = jacobian(self.f,self.xhat,measurement,state)
             Ad = np.identity(2) + A*Tp + A@A*Tp**2
-            self.P = Ad@self.P@Ad.T + Tp**2*self.Q
+            self.P = Ad@self.P@Ad.T + Tp**2*self.Q 
             # self.P = np.zeros((2,2))
 
     def measurement_update(self, measurement, state):
@@ -147,8 +149,8 @@ class EkfAttitude:
         ##### TODO #####
         S_inv = np.zeros((3,3))
         if (y-h).T @ S_inv @ (y-h) < self.gate_threshold:
-            Li = self.P@Ci.T@np.linalg.inv(self.Q_gyro + Ci@self.P@Ci.T)
-            self.P = (np.identity(2) - Li@Ci) @ self.P @ (np.identity(2) - Li@Ci).T + Li@self.Q_gyro@Li.T
+            Li = self.P@Ci.T@np.linalg.inv(self.R_accel+ Ci@self.P@Ci.T)
+            self.P = (np.identity(2) - Li@Ci) @ self.P @ (np.identity(2) - Li@Ci).T + Li@self.R_accel@Li.T
             self.xhat = self.xhat + Li@(y - h)
             # self.P = np.zeros((2,2))
             # self.xhat = np.zeros((2,1))
@@ -164,21 +166,20 @@ class EkfPosition:
                     0.1, # chi
                     0.1, # wn
                     0.1, # we
-                    0.1, #0.0001, # psi
+                    0.0001, #0.0001, # psi
                     ])
         self.R_gps = np.diag([
-                    SENSOR.gps_n_sigma,  # y_gps_n
-                    SENSOR.gps_e_sigma,  # y_gps_e
-                    SENSOR.gps_Vg_sigma,  # y_gps_Vg
-                    SENSOR.gps_course_sigma,  # y_gps_course
+                    0,#SENSOR.gps_n_sigma,  # y_gps_n
+                    0,#SENSOR.gps_e_sigma,  # y_gps_e
+                    0,#SENSOR.gps_Vg_sigma,  # y_gps_Vg
+                    0,#SENSOR.gps_course_sigma,  # y_gps_course
                     ])
         self.R_pseudo = np.diag([
-                    0.01,  # pseudo measurement #1
-                    0.01,  # pseudo measurement #2
+                    0.0,  # pseudo measurement #1
+                    0.0,  # pseudo measurement #2
                     ])
         self.N = 10  # number of prediction step per sample
         self.Ts = (SIM.ts_control / self.N)
-        # self.xhat = np.array([[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]])
         self.xhat = np.array([[0.0], [0.0], [25.0], [0.0], [0.0], [0.0], [0.0]])
         self.P = np.diag([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.gps_n_old = 0
@@ -208,14 +209,14 @@ class EkfPosition:
         we  = x.item(5)
         psi = x.item(6)
         # u commanded inputs (state?)
-        Va = np.sqrt(2*measurement.diff_pressure)/MAV.rho
+        Va = np.sqrt(2/MAV.rho*measurement.diff_pressure)
         phi = state.phi
         theta = state.theta
         q = measurement.gyro_y
         r = measurement.gyro_z
         # other
         g = MAV.gravity
-        phi_dot = q*np.sin(phi)/np.cos(theta)-r*np.cos(phi)/np.cos(theta)
+        phi_dot = q*np.sin(phi)/np.cos(theta)+r*np.cos(phi)/np.cos(theta)
 
         f_ = np.array([[Vg*np.cos(chi)],
                        [Vg*np.sin(chi)],
@@ -250,7 +251,7 @@ class EkfPosition:
         we  = x.item(5)
         
         # u commanded inputs
-        Va = np.sqrt(2*measurement.diff_pressure)/MAV.rho
+        Va = np.sqrt(2/MAV.rho*measurement.diff_pressure)
         phi = state.phi
 
         h_ = np.array([
@@ -261,17 +262,17 @@ class EkfPosition:
 
     def propagate_model(self, measurement, state):
         # model propagation
-        Tp = self.Ts/self.N
+        Tp = self.Ts #/self.N !!! what is this???
         for i in range(0, self.N):
             # propagate model
             # self.xhat = np.zeros((7,1))
-            self.xhat[:7] = self.xhat + Tp*self.f(self.xhat,measurement,state)
+            self.xhat = self.xhat + Tp*self.f(self.xhat,measurement,state)
             # compute Jacobian
             A = jacobian(self.f,self.xhat,measurement,state)
             # convert to discrete time models
             Ad = np.identity(7) + A*Tp + A@A*Tp**2
             # update P with discrete time model
-            self.P = Ad@self.P@Ad.T + Tp**2*self.Q
+            self.P = Ad@self.P@Ad.T + Tp**2*self.Q 
             # self.P = np.zeros((7,7))
 
     def measurement_update(self, measurement, state):
@@ -282,7 +283,7 @@ class EkfPosition:
         S_inv = np.zeros((2,2))
         if (y-h).T @ S_inv @ (y-h) < self.pseudo_threshold:
             Li = self.P@Ci.T@np.linalg.inv(self.R_pseudo+Ci@self.P@Ci.T)
-            self.P = (np.identity(2) - Li@Ci) @ self.P
+            self.P = (np.identity(2) - Li@Ci) @ self.P @ (np.identity(2)-Li@Ci).T + Li@self.R_pseudo@Li.T
             self.xhat = self.xhat + Li @ (y - h) 
             # self.P = np.zeros((7,7))
             # self.xhat = np.zeros((7,1))
