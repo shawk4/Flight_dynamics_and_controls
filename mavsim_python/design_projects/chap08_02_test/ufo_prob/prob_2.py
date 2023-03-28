@@ -5,10 +5,15 @@ from tools.rotations import Quaternion2Rotation, Quaternion2Euler, Euler2Rotatio
 
 # Givens:
 vel = np.array([25,1,0]).T # inertial velocties or Vg expressed in the body frame [u,v,w]
-att = np.array([-10,5,105]).T # inertial attitude expressed in the body frame [phi, theta, psi]
-wn = 2
-we = -5
-wd = -1
+att = np.array([-10,5,105]).T *np.pi/180# inertial attitude expressed in the body frame [phi, theta, psi]
+wind_steady_state = np.array([-2,-5,-1]).T # wind in inertial or world frame
+
+# convert wind vector from world to body frame 
+R_bv = Euler2Rotation(att.item(0),att.item(1),att.item(2))
+wind = R_bv @ wind_steady_state
+wn = wind.item(0)
+we = wind.item(1)
+wd = wind.item(2)
 
 # velocity vector relative to the airmass ([ur , vr, wr]= ?)
 # V_ba = np.array([[u-uw, v-vw, w-ww]])
