@@ -60,7 +60,7 @@ class EkfStateObserver:
         Tp = self.Ts/10
         for j in range(0, N):
             self.xhat = self.xhat + Tp*self.f(self.xhat,inp)
-            A = np.array([[-self.b0/self.m,0],
+            A = np.array([[-self.b0/self.m - 3*self.b1/self.m*self.xhat.item(0)**2,0],
                           [1,0]])
             Ad = np.identity(2) + A*Tp + A@A*Tp**2
             self.Px = Ad @ self.Px @ Ad.T + Tp**2*self.Q 
@@ -68,11 +68,10 @@ class EkfStateObserver:
         # correction step
                 # measurement updates
         h = self.h(self.xhat, inp)
-        Ci = np.array([[1,0],
-                       [0,1]])
+        Ci = np.array([0,1])
         y = np.array([[F, z_m]]).T
         S_inv = np.linalg.inv(self.R + Ci @ self.Px @ Ci.T)
-        if (np.fmod(t,20*self.Ts) == 0): # np.fmod(t,20*self.Ts) == 0  # True
+        if True: # np.fmod(t,20*self.Ts) == 0  # True
             Li = self.Px@Ci.T@S_inv
             self.Px = (np.identity(2) - Li@Ci) @ self.Px @ (np.identity(2) - Li @ Ci).T + Li @ self.R @ Li.T
             self.xhat = self.xhat + Li@(y - h)

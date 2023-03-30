@@ -1,10 +1,10 @@
 import sys
 sys.path.append('../../..')
 import numpy as np
-from tools.rotations import Quaternion2Rotation, Quaternion2Euler, Euler2Rotation
+from tools.rotations import Quaternion2Rotation, Quaternion2Euler, Euler2Rotation, Euler2Quaternion
 
 # convert Euler to Quaternion
-quaternion = Euler2Rotation(np.deg2rad(-25.0), np.deg2rad(-2.0), np.deg2rad(110.0))
+quaternion = Euler2Quaternion(np.deg2rad(-25.0), np.deg2rad(-2.0), np.deg2rad(110.0))
 print("Quaternion")
 print(quaternion)
 
