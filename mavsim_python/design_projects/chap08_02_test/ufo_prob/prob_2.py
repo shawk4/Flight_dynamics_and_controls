@@ -39,7 +39,7 @@ print("gamma_a:" + str(gamma_a*180/np.pi))
 
 # compute flight path angle gamma !!! come back
 gamma = alpha
-print("gamma:" + str(gamma))
+print("gamma:" + str(gamma*180/np.pi))
 
 
 
