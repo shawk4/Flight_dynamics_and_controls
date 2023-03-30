@@ -48,13 +48,17 @@ class PathManager:
     def line_manager(self, waypoints, state):
         mav_pos = np.array([[state.north, state.east, -state.altitude]]).T
         # if the waypoints have changed, update the waypoint pointer
-        
+        if waypoints.flag_waypoints_changed:
+            i = 1
         ##### TODO ######
         # Use functions - self.initialize_pointers(), self.construct_line()
         # self.inHalfSpace(mav_pos), self.increment_pointers(), self.construct_line()
 
         # Use variables - self.ptr_current, self.manager_requests_waypoints,
         # waypoints.__, radius
+        r = waypoints
+
+
 
     def fillet_manager(self, waypoints, radius, state):
         mav_pos = np.array([[state.north, state.east, -state.altitude]]).T
