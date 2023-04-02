@@ -37,8 +37,10 @@ print("Beta:" + str(beta*180/np.pi))
 gamma_a = att[1] - alpha # theta - alpha
 print("gamma_a:" + str(gamma_a*180/np.pi))
 
-# compute flight path angle gamma !!! come back
-gamma = alpha
+# compute flight path angle gamma 
+Vg = np.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2)
+p_d_dot = (R_bv.T @ vel)[2]
+gamma = np.arcsin(-p_d_dot/Vg)
 print("gamma:" + str(gamma*180/np.pi))
 
 

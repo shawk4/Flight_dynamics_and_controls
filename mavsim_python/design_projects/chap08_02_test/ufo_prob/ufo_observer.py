@@ -14,13 +14,15 @@ class EkfStateObserver:
         # process and measurement noise
         self.Q = np.array([[1.0**2, 0.0 ],
                            [0.0, 0.1**2 ]])
-        self.R = np.array([[0.3**2, 0.0 ],
-                           [0.0, 0.3**2 ]])
+        self.R = 0.3**2
+        # self.R = np.array([[0.3**2, 0.0 ],
+        #                    [0.0, 0.3**2 ]])
+
         # initialize state and covariance
         self.vel0 = 0
-        self.pos0 = 0
+        self.pos0 = 20
         self.xhat = np.array([ [self.vel0], [self.pos0] ])
-        self.Px = self.P = np.diag([0, 0])
+        self.Px = self.P = np.diag([1.0, 1.0])
 
     
     def f(self, x, measurement):
@@ -59,22 +61,30 @@ class EkfStateObserver:
         N = 10
         Tp = self.Ts/10
         for j in range(0, N):
-            self.xhat = self.xhat + Tp*self.f(self.xhat,inp)
-            A = np.array([[-self.b0/self.m - 3*self.b1/self.m*self.xhat.item(0)**2,0],
-                          [1,0]])
+            # self.xhat = self.xhat + Tp*self.f(self.xhat,inp) # !!! here vhat is used insted of x hat I bet this causes my zig zags
+            vhat = self.xhat.item(0)
+            f1 = -(self.b0/self.m)*vhat - (self.b1/self.m)*vhat**3 - self.g + F/self.m
+            f2 = vhat
+            f_ufo = np.array([[f1],[f2]])
+            self.xhat = self.xhat + Tp*f_ufo
+            A = np.array([[-self.b0/self.m - 3*self.b1/self.m*vhat**2,0.0],
+                          [1,0.0]])
             Ad = np.identity(2) + A*Tp + A@A*Tp**2
-            self.Px = Ad @ self.Px @ Ad.T + Tp**2*self.Q 
+            self.Px = self.Px + Tp* (Ad @ self.Px + self.Px @ Ad.T + self.Q) 
 
         # correction step
-                # measurement updates
-        h = self.h(self.xhat, inp)
-        Ci = np.array([0,1])
-        y = np.array([[F, z_m]]).T
-        S_inv = np.linalg.inv(self.R + Ci @ self.Px @ Ci.T)
+        # measurement updates
+        # h = self.h(self.xhat, inp)
+        Ci = np.array([[0,1]])
+        # y = np.array([[F, z_m]]).T
+        # S_inv = np.linalg.inv(self.R + Ci @ self.Px @ Ci.T)
         if True: # np.fmod(t,20*self.Ts) == 0  # True
-            Li = self.Px@Ci.T@S_inv
-            self.Px = (np.identity(2) - Li@Ci) @ self.Px @ (np.identity(2) - Li @ Ci).T + Li @ self.R @ Li.T
-            self.xhat = self.xhat + Li@(y - h)
+            zhat = self.xhat.item(1)
+            Li = self.Px@Ci.T/(self.R + Ci@self.Px@Ci.T)
+
+            # Li = self.Px@Ci.T@S_inv
+            self.Px = (np.identity(2) - Li@Ci) @ self.Px # @ (np.identity(2) - Li @ Ci).T + Li @ self.R @ Li.T
+            self.xhat = self.xhat + Li*(z_m-zhat)#Li@(y - h)
         
 
         # return state estimate

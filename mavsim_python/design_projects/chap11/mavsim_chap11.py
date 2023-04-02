@@ -56,14 +56,14 @@ path_manager = PathManager()
 # waypoint definition
 from message_types.msg_waypoints import MsgWaypoints
 waypoints = MsgWaypoints()
-#waypoints.type = 'straight_line'
-#waypoints.type = 'fillet'
+# waypoints.type = 'straight_line' # gives nan for first turn... not anymore???
+# waypoints.type = 'fillet'
 waypoints.type = 'dubins'
 Va = PLAN.Va0
 waypoints.add(np.array([[0, 0, -100]]).T, Va, np.radians(0), np.inf, 0, 0)
-waypoints.add(np.array([[1000, 0, -100]]).T, Va, np.radians(45), np.inf, 0, 0)
-waypoints.add(np.array([[0, 1000, -100]]).T, Va, np.radians(45), np.inf, 0, 0)
-waypoints.add(np.array([[1000, 1000, -100]]).T, Va, np.radians(-135), np.inf, 0, 0)
+waypoints.add(np.array([[650, 0, -100]]).T, Va, np.radians(45), np.inf, 0, 0)
+waypoints.add(np.array([[0, 650, -100]]).T, Va, np.radians(45), np.inf, 0, 0)
+waypoints.add(np.array([[650, 650, -100]]).T, Va, np.radians(-135), np.inf, 0, 0)
 
 # initialize the simulation time
 sim_time = SIM.start_time
