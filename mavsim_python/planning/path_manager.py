@@ -122,30 +122,33 @@ class PathManager:
 
             if self.manager_state == 1:
                 # flag = 2; c = cs; rho = R; lam = lam_s
-                self.construct_dubins_circle_start()
+                self.construct_dubins_circle_start(start_sign=-1)
                 if self.inHalfSpace(mav_pos):
                     self.manager_state = 2
 
             elif self.manager_state == 2:
+                self.construct_dubins_circle_start(start_sign=1)
                 if self.inHalfSpace(mav_pos):
                     self.manager_state = 3
 
             elif self.manager_state == 3: # make and follow a line in state 3
                 # flag = 1; r = z1; q = q1
-                self.increment_pointers()
                 self.construct_dubins_line()
                 if self.inHalfSpace(mav_pos):
                     self.manager_state = 4
 
             elif self.manager_state == 4: # make and follow an end orbit in state 4
                 # flag = 2; c = ce; rho = R; lam = lam_e
-                self.construct_dubins_circle_end()
+                self.construct_dubins_circle_end(end_sign=-1)
                 if self.inHalfSpace(mav_pos):
                     self.manager_state = 5
 
             elif self.manager_state == 5: 
+                self.construct_dubins_circle_end(end_sign=1)
                 if self.inHalfSpace(mav_pos):
-                    self.manager_state = 1         
+                    self.manager_state = 1  
+                    self.increment_pointers()
+
 
             # find L, c_s, lam_s, c_e, lam_e, z1, q1, z2, z3, q3 ## 
             self.dubins_path.update(waypoints.ned[:,self.ptr_previous:self.ptr_previous+1], waypoints.course[self.ptr_previous], 
@@ -255,11 +258,11 @@ class PathManager:
         self.path.plot_updated = False
         self.path.type = "orbit"
 
-    def construct_dubins_circle_start(self):
+    def construct_dubins_circle_start(self, start_sign):
         ##### TODO #####
         # update halfspace variables
 
-        self.halfspace_n = self.dubins_path.get_q1() # a normal vector to the point  n <-> q ???
+        self.halfspace_n = start_sign*self.dubins_path.get_q1() # a normal vector to the point  n <-> q ???
         self.halfspace_r =  self.dubins_path.get_z1() # a point  r <-> z ???
         
         if self.dubins_path.get_dir_s() > 0:
@@ -293,9 +296,9 @@ class PathManager:
         self.path.plot_updated = False
         self.path.type = "line"
 
-    def construct_dubins_circle_end(self):
+    def construct_dubins_circle_end(self, end_sign):
         ##### TODO #####
-        self.halfspace_n = self.dubins_path.get_q3() # a normal vector to the point r... n <-> q ???
+        self.halfspace_n = end_sign*self.dubins_path.get_q3() # a normal vector to the point r... n <-> q ???
         self.halfspace_r = self.dubins_path.get_z3() # a point  r <-> z ???
 
         if self.dubins_path.get_dir_e() > 0:

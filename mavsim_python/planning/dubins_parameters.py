@@ -42,25 +42,28 @@ class DubinsParameters:
             cle = pe + R * rotz(-np.pi/2) @ np.array([[np.cos(chie), np.sin(chie), 0]]).T
 
             # compute L1
-            var_t = np.arctan2(cre.item(1)-crs.item(1), cre.item(1)-crs.item(1))
-            L1 = np.linalg.norm(crs - cre) + R*mod(2*np.pi + mod(var_t-np.pi/2) - mod(chis-np.pi/2)) + \
-                                             R*mod(2*np.pi + mod(chie-np.pi/2)  - mod(var_t-np.pi/2))
+            var_t_L1 = np.arctan2(cre.item(1)-crs.item(1), cre.item(0)-crs.item(0))
+            L1 = np.linalg.norm(crs - cre) + R*mod(2*np.pi + mod(var_t_L1-np.pi/2) - mod(chis-np.pi/2)) + \
+                                             R*mod(2*np.pi + mod(chie-np.pi/2)  - mod(var_t_L1-np.pi/2))
 
             # compute L2
+            var_t_L2 = np.arctan2(cle.item(1)-crs.item(1), cle.item(0)-crs.item(0))
             l2 = np.linalg.norm(cle-crs)
-            var_tL2 = var_t - np.pi/2 + np.arcsin(2*R/l2)
-            L2 = np.sqrt(l2**2 - 4*R**2) + R*mod(2*np.pi + mod(var_tL2)       - mod(chis-np.pi/2)) + \
-                                           R*mod(2*np.pi + mod(var_tL2+np.pi) - mod(chie+np.pi/2))
+            var_t2L2 = var_t_L2 - np.pi/2 + np.arcsin(2*R/l2)
+            L2 = np.sqrt(l2**2 - 4*R**2) + R*mod(2*np.pi + mod(var_t2L2)       - mod(chis-np.pi/2)) + \
+                                           R*mod(2*np.pi + mod(var_t2L2+np.pi) - mod(chie+np.pi/2))
 
             # compute L3
+            var_t_L3 = np.arctan2(cre.item(1)-cls.item(1), cre.item(0)-cls.item(0))
             l3 = np.linalg.norm(cre-cls)
-            var_tL3 = np.arccos(2*R/l3) # !!! this seemed wrong in the book it was var_t2 again may cause issues seems there are four of them var_t_l1 var_t_l2...
-            L3 = np.sqrt(l3**2 - 4*R**2) + R*mod(2*np.pi + mod(chis+np.pi/2) - mod(var_t + var_tL3)) + \
-                                           R*mod(2*np.pi + mod(chie-np.pi/2)   - mod(var_t + var_tL3 - np.pi))
+            var_t2L3 = np.arccos(2*R/l3) # !!! this seemed wrong in the book it was var_t2 again may cause issues seems there are four of them var_t_l1 var_t_l2...
+            L3 = np.sqrt(l3**2 - 4*R**2) + R*mod(2*np.pi + mod(chis+np.pi/2) - mod(var_t_L3 + var_t2L3)) + \
+                                           R*mod(2*np.pi + mod(chie-np.pi/2)   - mod(var_t_L3 + var_t2L3 - np.pi))
 
             # compute L4
-            L4 = np.linalg.norm(cls - cle) + R*mod(2*np.pi + mod(chis + np.pi/2) - mod(var_t + np.pi/2)) + \
-                                             R*mod(2*np.pi + mod(var_t + np.pi/2) - mod(chie+np.pi/2))
+            var_t_L4 = np.arctan2(cle.item(1)-cls.item(1), cle.item(0)-cls.item(0))
+            L4 = np.linalg.norm(cls - cle) + R*mod(2*np.pi + mod(chis + np.pi/2) - mod(var_t_L4 + np.pi/2)) + \
+                                             R*mod(2*np.pi + mod(var_t_L4 + np.pi/2) - mod(chie+np.pi/2))
 
             # L is the minimum distance
             L = np.min([L1, L2, L3, L4])
@@ -71,36 +74,38 @@ class DubinsParameters:
             if min_idx == 0:
                 cs=crs; lam_s=1; ce=cre; lam_e=1
                 q1 = (ce-cs)/np.linalg.norm(ce-cs)
-                z1 = cs + R * rotz(-np.pi/2)*q1
-                z2 = ce + R * rotz(-np.pi/2)*q1
+                z1 = cs + R * rotz(-np.pi/2)@q1
+                z2 = ce + R * rotz(-np.pi/2)@q1
             # L2
             elif min_idx == 1:
                 cs=crs; lam_s=1; ce=cle; lam_e=-1
                 l = np.linalg.norm(ce-cs)
                 # var_t = angle(ce-cs) # !!! going on a hunch here that var_t 1 and 2 from above are the same as these but need to be different for each case so var_tL2
                 cse = (ce - cs) / np.linalg.norm(ce - cs)
-                var_t = np.arccos(-e1.T@cse).item(0)# angle(ce-cs)
-                var_tL2 = var_t - np.pi/2 + np.arcsin(2*R/l) 
-                q1 = rotz(var_tL2 + np.pi/2)@e1 
-                z1 = cs + R * rotz(var_tL2)@e1
-                z2 = ce + R * rotz(var_tL2 + np.pi)@e1
+                var_t_rl = np.arccos(e1.T@cse).item(0)# angle(ce-cs)
+
+                var_t2_rl = var_t_rl - np.pi/2 + np.arcsin(2*R/l) 
+                q1 = rotz(var_t2_rl + np.pi/2)@e1 
+                z1 = cs + R * rotz(var_t2_rl)@e1
+                z2 = ce + R * rotz(var_t2_rl + np.pi)@e1
             # L3
             elif min_idx == 2:
                 cs=cls; lam_s=-1; ce=cre; lam_e=1
                 l = np.linalg.norm(ce-cs)
                 # var_t = angle(ce-cs) # !!! still going on the hunch above so var_tL3 here probably wrong definityly makes a difference trying var_t
                 cse = (ce - cs) / np.linalg.norm(ce - cs)
-                var_t = np.arccos(-e1.T@cse).item(0) # angle(ce-cs)
-                var_t2_L3 = np.arccos(2*R/l)
-                q1 = rotz(var_t + var_t2_L3 - np.pi/2)@e1
-                z1 = cs + R * rotz(var_t + var_t2_L3)@e1
-                z2 = ce + R * rotz(var_t + var_t2_L3 - np.pi)@e1
+                var_t_lr = np.arccos(e1.T@cse).item(0) # angle(ce-cs)
+                
+                var_t2_lr = np.arccos(2*R/l)
+                q1 = rotz(var_t_lr + var_t2_lr - np.pi/2)@e1
+                z1 = cs + R * rotz(var_t_lr + var_t2_lr)@e1
+                z2 = ce + R * rotz(var_t_lr + var_t2_lr - np.pi)@e1
             # L4
             elif min_idx == 3:
                 cs=cls; lam_s=-1; ce=cle; lam_e=-1
                 q1 = (ce-cs)/np.linalg.norm(ce-cs)
-                z1 = cs + R * rotz(np.pi/2)*q1
-                z2 = ce + R * rotz(np.pi/2)*q1
+                z1 = cs + R * rotz(np.pi/2)@q1
+                z2 = ce + R * rotz(np.pi/2)@q1
             z3 = pe
             q3 = rotz(chie)@e1
             
