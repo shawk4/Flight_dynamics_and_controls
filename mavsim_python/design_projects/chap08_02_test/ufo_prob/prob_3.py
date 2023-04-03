@@ -36,8 +36,18 @@ print("altitude_kp:" + str(altitude_kp))
 print("altitude_ki:" + str(altitude_ki))
 
 
-lti = signal.lti([-2.08],[1.0,0.668,1.27])
-time, y = signal.step(lti)
+lti1 = signal.lti([-2.08],[1.0,0.668,1.27])
+
+de_q = signal.lti([a_theta3,0.0],[1.0,a_theta1,a_theta2])
+
+Pc = signal.lti([pitch_kd, altitude_kp],[1.0])
+Pp = signal.lti([],[])
+
+hc = signal.lti([altitude_kp*altitude_ki,altitude_kp],[altitude_ki])
+hp = signal.lti([],[])
+
+tf = signal.sos2tf([de_q,Pc,Pp,hc,hp])
+time, y = signal.step(tf)
 
 plt.plot(time, y)
 plt.grid
