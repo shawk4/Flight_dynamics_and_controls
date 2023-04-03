@@ -6,6 +6,8 @@ from control.pd_control_with_rate import PDControlWithRate
 import matplotlib.pyplot as plt
 from models.mav_dynamics_control import MavDynamics
 import parameters.simulation_parameters as SIM
+from scipy import signal
+# import control
 
 Boeing = MavDynamics(SIM.ts_simulation)
 
@@ -34,43 +36,51 @@ print("altitude_kp:" + str(altitude_kp))
 print("altitude_ki:" + str(altitude_ki))
 
 
-# instantiate longitudinal controllers
-pitch_from_elevator = PDControlWithRate(
-                kp=pitch_kp,
-                kd=pitch_kd,
-                limit=np.radians(45))
-altitude_from_pitch = PIControl(
-                kp=altitude_kp,
-                ki=altitude_ki,
-                limit=np.radians(30))
+lti = signal.lti([-2.08],[1.0,0.668,1.27])
+time, y = signal.step(lti)
 
-h_c = 100
-altitude = 20000
-theta = 0
-q = 0
-altitude_hist = [20000]
-e_hist = [theta]
-timeStep = [0]
-for i in range(100000):
-    # longitudinal autopilot
-    # -------autopilot-------------
-    # might normaly saturate altitude command here
-    delta_h = altitude_from_pitch.update(h_c, altitude)
-    delta_e = pitch_from_elevator.update(delta_h, theta, q) # theta_c = comanded theta q = pitch_rate
-    # might saturate throttle command here
-    altitude += delta_h
-    theta += delta_e
-
-    # -------physical system-------------
-    # Boeing.update(delta_e)  # propagate the MAV dynamics
-
-    altitude_hist.append(altitude)
-    e_hist.append(delta_e)
-    timeStep.append(i)
-
-plt.plot(timeStep, altitude_hist, 'r--')
-# plt.plot(timeStep, e_hist, 'g.')
+plt.plot(time, y)
+plt.grid
 plt.show()
+
+
+# instantiate longitudinal controllers
+# pitch_from_elevator = PDControlWithRate(
+#                 kp=pitch_kp,
+#                 kd=pitch_kd,
+#                 limit=np.radians(45))
+# altitude_from_pitch = PIControl(
+#                 kp=altitude_kp,
+#                 ki=altitude_ki,
+#                 limit=np.radians(30))
+
+# h_c = 100
+# altitude = 20000
+# theta = 0
+# q = 0
+# altitude_hist = [20000]
+# e_hist = [theta]
+# timeStep = [0]
+# for i in range(100000):
+#     # longitudinal autopilot
+#     # -------autopilot-------------
+#     # might normaly saturate altitude command here
+#     delta_h = altitude_from_pitch.update(h_c, altitude)
+#     delta_e = pitch_from_elevator.update(delta_h, theta, q) # theta_c = comanded theta q = pitch_rate
+#     # might saturate throttle command here
+#     altitude += delta_h
+#     theta += delta_e
+
+#     # -------physical system-------------
+#     # Boeing.update(delta_e)  # propagate the MAV dynamics
+
+#     altitude_hist.append(altitude)
+#     e_hist.append(delta_e)
+#     timeStep.append(i)
+
+# plt.plot(timeStep, altitude_hist, 'r--')
+# # plt.plot(timeStep, e_hist, 'g.')
+# plt.show()
 
 
 
