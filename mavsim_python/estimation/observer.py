@@ -291,7 +291,7 @@ class EkfPosition:
         # always update based on wind triangle pseudo measurement
         h = self.h_pseudo(self.xhat, measurement, state)
         Ci = jacobian(self.h_pseudo, self.xhat, measurement, state)
-        y = np.array([[0, 0]]).T
+        y = np.array([[0, 0]]).T # !!! I suspect this is wrong it should at least be the values of our current estimated position.
         S_inv = np.linalg.inv(self.R_pseudo+Ci@self.P@Ci.T)
         if (y-h).T @ S_inv @ (y-h) < self.pseudo_threshold:
             Li = self.P@Ci.T@S_inv

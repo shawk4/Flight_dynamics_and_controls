@@ -22,7 +22,7 @@ class EkfStateObserver:
         self.vel0 = 0
         self.pos0 = 20
         self.xhat = np.array([ [self.vel0], [self.pos0] ])
-        self.Px = self.P = np.diag([1.0, 1.0])
+        self.Px = self.P = np.diag([1.0, 1.0]) # what is px? prediction.
 
     
     def f(self, x, measurement):
@@ -69,8 +69,8 @@ class EkfStateObserver:
             self.xhat = self.xhat + Tp*f_ufo
             A = np.array([[-self.b0/self.m - 3*self.b1/self.m*vhat**2,0.0],
                           [1,0.0]])
-            Ad = np.identity(2) + A*Tp + A@A*Tp**2
-            self.Px = self.Px + Tp* (Ad @ self.Px + self.Px @ Ad.T + self.Q) 
+            # Ad = np.identity(2) + A*Tp + A@A*Tp**2                       # why don't we need to make this discrete? 
+            self.Px = self.Px + Tp* (A @ self.Px + self.Px @ A.T + self.Q) # why is this handeled differently?
 
         # correction step
         # measurement updates
