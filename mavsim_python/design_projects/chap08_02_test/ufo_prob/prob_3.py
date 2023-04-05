@@ -35,21 +35,27 @@ altitude_ki = wn_altitude**2/(K_theta_DC*Va0)
 print("altitude_kp:" + str(altitude_kp))
 print("altitude_ki:" + str(altitude_ki))
 
+# hc = control.tf([altitude_kp*altitude_ki,altitude_kp],[altitude_ki])
+# hp = control.tf([],[])
 
-# lti1 = signal.lti([-2.08],[1.0,0.668,1.27])
+thetac = 
 
-# de_q = signal.lti([a_theta3,0.0],[1.0,a_theta1,a_theta2])
+# lti1 = control.tf([-2.08],[1.0,0.668,1.27])
 
-# Pc = signal.lti([pitch_kd, altitude_kp],[1.0])
-# Pp = signal.lti([],[])
+# de_q = control.tf([a_theta3,0.0],[1.0,a_theta1,a_theta2])
 
-# hc = signal.lti([altitude_kp*altitude_ki,altitude_kp],[altitude_ki])
-# hp = signal.lti([],[])
+# Pc = control.tf([pitch_kd, altitude_kp],[1.0])
+# Pp = control.tf([],[])
 
-# tf = signal.sos2tf([de_q,Pc,Pp,hc,hp])
-# time, y = signal.step(tf)
 
-tf = control.tf([2],[1,2])
+# tf = control.series([de_q,Pc,Pp,hc,hp])
+# time, y = control.step_response(tf)
+
+# series(sys1, sys2)            # Return the series connection sys2 * sys1 for –> sys1 –> sys2 –>.
+# parallel(sys1, sys2)          # Return the parallel connection sys1 + sys2.
+# feedback(sys1[, sys2, sign]) 	# Feedback interconnection between two I/O systems.
+
+tf = control.tf([3.24, 0.36],[1, 3.6, 9, 3.24, 0.36])
 time, y = control.step_response(tf)
 
 plt.plot(time, y)
