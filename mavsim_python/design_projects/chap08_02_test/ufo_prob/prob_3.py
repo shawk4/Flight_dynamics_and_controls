@@ -1,15 +1,15 @@
-import sys
-sys.path.append('../../..')
+# import sys
+# sys.path.append('../../..')
 import numpy as np
-from control.pi_control import PIControl
-from control.pd_control_with_rate import PDControlWithRate
+# from MAV_control.pi_control import PIControl
+# from MAV_control.pd_control_with_rate import PDControlWithRate
 import matplotlib.pyplot as plt
-from models.mav_dynamics_control import MavDynamics
-import parameters.simulation_parameters as SIM
+# from models.mav_dynamics_control import MavDynamics
+# import parameters.simulation_parameters as SIM
 from scipy import signal
-# import control
+import control
 
-Boeing = MavDynamics(SIM.ts_simulation)
+# Boeing = MavDynamics(SIM.ts_simulation)
 
 #----------pitch loop-------------
 a_theta1 = .668 
@@ -36,18 +36,21 @@ print("altitude_kp:" + str(altitude_kp))
 print("altitude_ki:" + str(altitude_ki))
 
 
-lti1 = signal.lti([-2.08],[1.0,0.668,1.27])
+# lti1 = signal.lti([-2.08],[1.0,0.668,1.27])
 
-de_q = signal.lti([a_theta3,0.0],[1.0,a_theta1,a_theta2])
+# de_q = signal.lti([a_theta3,0.0],[1.0,a_theta1,a_theta2])
 
-Pc = signal.lti([pitch_kd, altitude_kp],[1.0])
-Pp = signal.lti([],[])
+# Pc = signal.lti([pitch_kd, altitude_kp],[1.0])
+# Pp = signal.lti([],[])
 
-hc = signal.lti([altitude_kp*altitude_ki,altitude_kp],[altitude_ki])
-hp = signal.lti([],[])
+# hc = signal.lti([altitude_kp*altitude_ki,altitude_kp],[altitude_ki])
+# hp = signal.lti([],[])
 
-tf = signal.sos2tf([de_q,Pc,Pp,hc,hp])
-time, y = signal.step(tf)
+# tf = signal.sos2tf([de_q,Pc,Pp,hc,hp])
+# time, y = signal.step(tf)
+
+tf = control.tf([2],[1,2])
+time, y = control.step_response(tf)
 
 plt.plot(time, y)
 plt.grid

@@ -13,9 +13,9 @@ import parameters.simulation_parameters as SIM
 from tools.signals import Signals
 from models.mav_dynamics_control import MavDynamics
 from models.wind_simulation import WindSimulation
-from control.autopilot import Autopilot
-# from control.autopilot_lqr import Autopilot
-# from control.autopilot_tecs import Autopilot
+from MAV_control.autopilot import Autopilot
+# from MAV_control.autopilot_lqr import Autopilot
+# from MAV_control.autopilot_tecs import Autopilot
 from viewers.mav_viewer import MavViewer
 from viewers.data_viewer import DataViewer
 from tools.quit_listener import QuitListener

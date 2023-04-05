@@ -22,7 +22,7 @@ class EkfStateObserver:
         self.vel0 = 0
         self.pos0 = 20
         self.xhat = np.array([ [self.vel0], [self.pos0] ])
-        self.Px = self.P = np.diag([1.0, 1.0]) # what is px? prediction.
+        self.Px = self.P = np.diag([1.0, 1.0])
 
     
     def f(self, x, measurement):
@@ -82,8 +82,9 @@ class EkfStateObserver:
             zhat = self.xhat.item(1)
             Li = self.Px@Ci.T/(self.R + Ci@self.Px@Ci.T)
 
-            # Li = self.Px@Ci.T@S_inv
-            self.Px = (np.identity(2) - Li@Ci) @ self.Px # @ (np.identity(2) - Li @ Ci).T + Li @ self.R @ Li.T
+            # this is also handled differently and I don't really know why the second part is added or left off?
+            # @ (np.identity(2) - Li @ Ci).T + Li @ self.R @ Li.T 
+            self.Px = (np.identity(2) - Li@Ci) @ self.Px 
             self.xhat = self.xhat + Li*(z_m-zhat)#Li@(y - h)
         
 

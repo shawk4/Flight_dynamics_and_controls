@@ -13,7 +13,7 @@ import parameters.simulation_parameters as SIM
 from tools.signals import Signals
 from models.mav_dynamics_sensors import MavDynamics
 from models.wind_simulation import WindSimulation
-from control.autopilot import Autopilot
+from MAV_control.autopilot import Autopilot
 from estimation.observer import Observer
 # from estimation.observer_full import Observer
 from viewers.mav_viewer import MavViewer

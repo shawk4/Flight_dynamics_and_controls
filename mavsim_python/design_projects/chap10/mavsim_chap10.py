@@ -12,7 +12,7 @@ import pyqtgraph as pg
 import parameters.simulation_parameters as SIM
 from models.mav_dynamics_sensors import MavDynamics
 from models.wind_simulation import WindSimulation
-from control.autopilot import Autopilot
+from MAV_control.autopilot import Autopilot
 from estimation.observer import Observer
 from planning.path_follower import PathFollower
 from viewers.data_viewer import DataViewer

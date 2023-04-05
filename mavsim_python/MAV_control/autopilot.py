@@ -10,9 +10,9 @@ sys.path.append('..')
 import parameters.control_parameters as AP
 # from tools.transfer_function import TransferFunction
 from tools.wrap import wrap
-from control.pi_control import PIControl
-from control.pd_control_with_rate import PDControlWithRate
-from control.tf_control import TFControl
+from MAV_control.pi_control import PIControl
+from MAV_control.pd_control_with_rate import PDControlWithRate
+from MAV_control.tf_control import TFControl
 from message_types.msg_state import MsgState
 from message_types.msg_delta import MsgDelta
 
