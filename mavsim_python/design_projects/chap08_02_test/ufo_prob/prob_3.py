@@ -38,7 +38,15 @@ print("altitude_ki:" + str(altitude_ki))
 # hc = control.tf([altitude_kp*altitude_ki,altitude_kp],[altitude_ki])
 # hp = control.tf([],[])
 
-thetac = 
+elv_to_theta = control.tf([a_theta3],[1, a_theta1, a_theta2])
+thetac_to_theta = control.feedback(elv_to_theta, pitch_kp)
+
+theta_to_h = control.tf([Va0],[1,0]) 
+
+hc_to_thetac = control.tf([altitude_kp,altitude_ki],[1,0])
+
+h_c_to_h = control.series(hc_to_thetac, thetac_to_theta, theta_to_h)
+time, y = control.step_response(h_c_to_h)
 
 # lti1 = control.tf([-2.08],[1.0,0.668,1.27])
 
@@ -55,8 +63,8 @@ thetac =
 # parallel(sys1, sys2)          # Return the parallel connection sys1 + sys2.
 # feedback(sys1[, sys2, sign]) 	# Feedback interconnection between two I/O systems.
 
-tf = control.tf([3.24, 0.36],[1, 3.6, 9, 3.24, 0.36])
-time, y = control.step_response(tf)
+# tf = control.tf([3.24, 0.36],[1, 3.6, 9, 3.24, 0.36])
+# time, y = control.step_response(tf)
 
 plt.plot(time, y)
 plt.grid
