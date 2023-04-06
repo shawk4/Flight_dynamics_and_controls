@@ -38,15 +38,31 @@ print("altitude_ki:" + str(altitude_ki))
 # hc = control.tf([altitude_kp*altitude_ki,altitude_kp],[altitude_ki])
 # hp = control.tf([],[])
 
-elv_to_theta = control.tf([a_theta3],[1, a_theta1, a_theta2])
-thetac_to_theta = control.feedback(elv_to_theta, pitch_kp)
 
+# from scratch
+# elv_to_q = control.tf([a_theta3, 0],[1, a_theta1, a_theta2])
+# elv_to_q_feedback = control.feedback(elv_to_q, pitch_kd)
+# q_to_theta = control.tf([1],[1,0])
+# elv_to_theta = control.series(elv_to_q_feedback, q_to_theta)
+# thetac_to_theta = control.series(pitch_kp, elv_to_theta)
+# thetac_to_theta_feedback = control.feedback(thetac_to_theta)
+
+# theta_to_h = control.tf([Va0],[1,0]) 
+
+# hc_to_thetac = control.tf([altitude_kp,altitude_ki],[1,0])
+
+# h_c_to_h = control.series(hc_to_thetac, thetac_to_theta_feedback, theta_to_h)
+# h_c_to_h_feedback = control.feedback(h_c_to_h,1)
+# time, y = control.step_response(h_c_to_h_feedback)
+
+#from givens
+thetac_to_theta = control.tf([pitch_kp*a_theta3], [1, (a_theta1+pitch_kd*a_theta3), (a_theta2+pitch_kp*a_theta3)])
 theta_to_h = control.tf([Va0],[1,0]) 
-
 hc_to_thetac = control.tf([altitude_kp,altitude_ki],[1,0])
 
 h_c_to_h = control.series(hc_to_thetac, thetac_to_theta, theta_to_h)
-time, y = control.step_response(h_c_to_h)
+h_c_to_h_feedback = control.feedback(h_c_to_h,1)
+time, y = control.step_response(h_c_to_h_feedback)
 
 # lti1 = control.tf([-2.08],[1.0,0.668,1.27])
 
@@ -69,6 +85,7 @@ time, y = control.step_response(h_c_to_h)
 plt.plot(time, y)
 plt.grid
 plt.show()
+pass
 
 
 # instantiate longitudinal controllers
