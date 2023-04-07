@@ -29,13 +29,14 @@ class RRTStraightLine:
         # check to see if start_pose connects directly to end_pose
         pose_i = start_pose
         # pose_i = np.array([tree.ned[:,0]]).T
+        # pose_i = column(tree.ned, i)
         while (distance(pose_i, end_pose) > radius): # !!! not sure if this should be radius or not 
             self.extend_tree(tree, end_pose, Va, world_map)
         
+            pose_i = column(tree.ned, tree.num_waypoints-1)
+        waypoints = smooth_path(tree, world_map) # !!! this won't work when I have branches
         # find path with minimum cost to end_node
         # waypoints_not_smooth = find_minimum_path()
-        # waypoints = smooth_path()
-        waypoints = MsgWaypoints()
         return waypoints
 
     def extend_tree(self, tree, end_pose, Va, world_map):
@@ -46,16 +47,25 @@ class RRTStraightLine:
 
         flag = True
         while flag: # loop until a valid point is found ... or path is extended???? !!!
+            # Generate a random step
             rand_x = np.random.uniform(0, 1)
+            if np.random.uniform(0, 1) < 0.5:
+                sign = 1
+            else:
+                sign = -1
             rand_y = 1-rand_x
-            rand_x *= self.segment_length
-            rand_y *= self.segment_length
-
+            rand_x *= self.segment_length*sign
+            rand_y *= self.segment_length*sign
             prev_point = tree.ned[:,tree.num_waypoints-1]
             rand_step =  prev_point + np.array([rand_x, rand_y, 0])
+            # check to see if random point is close to end pose
+            if (distance(rand_step, end_pose) <= self.segment_length):
+                rand_step = end_pose
+            # check for collision
             flag = collision(prev_point, rand_step, world_map)
-
-
+            # if there is no collision add point to the tree
+            if (flag == False):
+                tree.add(np.array([rand_step]).T, Va, np.inf, np.inf, 0, 0) # !!! serious weakness this tree does not have any branches
         return flag
         
     def process_app(self):
@@ -63,12 +73,20 @@ class RRTStraightLine:
 
 def smooth_path(waypoints, world_map):
 
-    ##### TODO #####
-    # smooth the waypoint path
-    smooth = [0]  # add the first waypoint
-    
     # construct smooth waypoint path
     smooth_waypoints = MsgWaypoints()
+    ##### TODO #####
+    # smooth the waypoint path
+    smooth_waypoints.add(column(waypoints.ned,0), 0, np.inf, np.inf, 0, 0)  # add the first waypoint
+    for i in range(1, len(waypoints)-1):
+        # check for collision
+        flag = collision(waypoints[i-1], waypoints[i], world_map)
+        if (flag == True):
+            smooth_waypoints.add(column(waypoints,i-1), 0, np.inf, np.inf, 0, 0)
+
+    return smooth_waypoints
+    
+
 
     return smooth_waypoints
 
@@ -116,11 +134,12 @@ def collision(start_pose, end_pose, world_map):
     ###### TODO ######
     collision_flag = True
     path_points = points_along_path(start_pose, end_pose, 30)
-    for point in path_points:
-        if world_map[int(point[0]), int(point[1])] == 0:
-            collision_flag = False
-        else:
-            collision_flag = True
+    # for point in path_points:
+    #     if world_map[int(point[0]), int(point[1])] == 0:
+    #         collision_flag = False
+    #     else:
+    #         collision_flag = True !!! Still need to do this
+    collision_flag = False
 
     return collision_flag
 

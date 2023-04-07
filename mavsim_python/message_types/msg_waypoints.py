@@ -42,8 +42,7 @@ class MsgWaypoints:
         # can this node connect to the goal?
         self.connect_to_goal = np.array([])
 
-    def add(self, ned=np.array([[0, 0, 0]]).T, airspeed=0,
-            course=np.inf, cost=0, parent=0, connect_to_goal=0):
+    def add(self, ned=np.array([[0, 0, 0]]).T, airspeed=0, course=np.inf, cost=0, parent=0, connect_to_goal=0):
         self.num_waypoints = self.num_waypoints + 1
         self.ned = np.append(self.ned, ned, axis=1)
         self.airspeed = np.append(self.airspeed, airspeed)
