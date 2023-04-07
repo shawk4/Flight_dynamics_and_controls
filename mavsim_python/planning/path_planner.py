@@ -48,12 +48,10 @@ class PathPlanner:
             start_pose = np.array([[state.north], [state.east], [-desired_altitude]])
             # desired end pose
             if np.linalg.norm(start_pose[0:2]) < world_map.city_width / 2:
-                end_pose = np.array([[world_map.city_width], [world_map.city_width],
-                                     [-desired_altitude]])
+                end_pose = np.array([[world_map.city_width], [world_map.city_width], [-desired_altitude]])
             else:  # or to the bottom-left corner of world_map
                 end_pose = np.array([[0], [0], [-desired_altitude]])
-            self.waypoints = self.rrt_straight_line.update(start_pose, end_pose,
-                                                           desired_airspeed, world_map, radius)
+            self.waypoints = self.rrt_straight_line.update(start_pose, end_pose, desired_airspeed, world_map, radius)
 
         elif self._planner_flag == 'rrt_dubins':
             desired_airspeed = 25

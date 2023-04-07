@@ -19,13 +19,18 @@ class RRTStraightLine:
 
     def update(self, start_pose, end_pose, Va, world_map, radius):
         tree = MsgWaypoints()
-        #tree.type = 'straight_line'
-        tree.type = 'fillet'
+        tree.type = 'straight_line'
+        # tree.type = 'fillet'
 
         ###### TODO ######
         # add the start pose to the tree
+        tree.add(start_pose, Va, np.inf, np.inf, 0, 0)
         
         # check to see if start_pose connects directly to end_pose
+        pose_i = start_pose
+        # pose_i = np.array([tree.ned[:,0]]).T
+        while (distance(pose_i, end_pose) > radius): # !!! not sure if this should be radius or not 
+            self.extend_tree(tree, end_pose, Va, world_map)
         
         # find path with minimum cost to end_node
         # waypoints_not_smooth = find_minimum_path()
@@ -37,7 +42,20 @@ class RRTStraightLine:
         # extend tree by randomly selecting pose and extending tree toward that pose
         
         ###### TODO ######
-        flag = None
+        # random_pose(world_map, Va) .... hmmmmm
+
+        flag = True
+        while flag: # loop until a valid point is found ... or path is extended???? !!!
+            rand_x = np.random.uniform(0, 1)
+            rand_y = 1-rand_x
+            rand_x *= self.segment_length
+            rand_y *= self.segment_length
+
+            prev_point = tree.ned[:,tree.num_waypoints-1]
+            rand_step =  prev_point + np.array([rand_x, rand_y, 0])
+            flag = collision(prev_point, rand_step, world_map)
+
+
         return flag
         
     def process_app(self):
@@ -87,7 +105,8 @@ def distance(start_pose, end_pose):
     # compute distance between start and end pose
 
     ##### TODO #####
-    d = 0
+    d = np.linalg.norm(end_pose-start_pose)
+    
     return d
 
 
@@ -95,7 +114,14 @@ def collision(start_pose, end_pose, world_map):
     # check to see of path from start_pose to end_pose colliding with map
     
     ###### TODO ######
-    collision_flag = None
+    collision_flag = True
+    path_points = points_along_path(start_pose, end_pose, 30)
+    for point in path_points:
+        if world_map[int(point[0]), int(point[1])] == 0:
+            collision_flag = False
+        else:
+            collision_flag = True
+
     return collision_flag
 
 
@@ -108,7 +134,10 @@ def height_above_ground(world_map, point):
 
 def points_along_path(start_pose, end_pose, N):
     # returns points along path separated by Del
-    points = None
+    unit_vector = (end_pose - start_pose)/(np.linalg.norm(end_pose-start_pose))
+    points = []
+    for i in range(N):
+        points.append(start_pose + i*unit_vector)
     return points
 
 
