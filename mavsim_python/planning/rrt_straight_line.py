@@ -37,7 +37,7 @@ class RRTStraightLine:
         waypoints = tree
         # find path with minimum cost to end_node
         waypoints = find_minimum_path(tree, end_pose)
-        # waypoints = smooth_path(waypoints, world_map) 
+        waypoints = smooth_path(waypoints, world_map) 
         return waypoints
 
     def extend_tree(self, tree, end_pose, Va, world_map):
@@ -153,16 +153,14 @@ def collision(start_pose, end_pose, world_map):
     # check to see of path from start_pose to end_pose colliding with map
     ###### TODO ######
     collision_flag = True
-    path_points = points_along_path(start_pose, end_pose, 100)
+    path_points = points_along_path(start_pose, end_pose, 30)
     #loop over all points between start and end pose and check for collision
-
     for point in path_points:
-        for ni, n_pose in enumerate(world_map.building_north):
-            for ei, e_pose in enumerate(world_map.building_east):
-                bld_pose = np.array([[n_pose.item(ni), e_pose.item(ei), point.item(2)]]).T
-                if (distance(point, bld_pose) < world_map.building_width*2.5):
-                    if (abs(point.item(2)) > abs(world_map.building_height[ni,ei])):
-                        # print("collision")
+        for ni, n_pose in enumerate(world_map.building_north[0]):
+            for ei, e_pose in enumerate(world_map.building_east[0]):
+                bld_pose = np.array([[n_pose, e_pose, point.item(2)]]).T
+                if (distance(point, bld_pose) < world_map.building_width*1.5):
+                    if (abs(point.item(2)) < abs(world_map.building_height[ni,ei])):
                         return True
     return False
 
@@ -183,6 +181,7 @@ def points_along_path(start_pose, end_pose, N):
     points = []
     for i in range(N):
         points.append(start_pose + i*res*unit_vector)
+    points.append(end_pose)
 
     return points
 

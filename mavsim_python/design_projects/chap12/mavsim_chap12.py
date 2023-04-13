@@ -74,6 +74,9 @@ while sim_time < SIM.end_time:
     # -------path planner - ----
     if path_manager.manager_requests_waypoints is True:
         waypoints = path_planner.update(world_map, estimated_state, PLAN.R_min)
+        # waypoints.type = 'straight_line' # gives nan for first turn... not anymore???
+        waypoints.type = 'fillet'
+        # waypoints.type = 'dubins'
 
     # -------path manager-------------
     path = path_manager.update(waypoints, PLAN.R_min, estimated_state)
