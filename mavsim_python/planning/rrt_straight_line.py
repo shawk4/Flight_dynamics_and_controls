@@ -91,6 +91,7 @@ def smooth_path(waypoints, world_map):
         flag = collision(column(waypoints.ned,j), column(waypoints.ned,i), world_map)
         if (flag == True):
             j = i-1 
+            i = i-1
             smooth_waypoints.add(column(waypoints.ned,j), airspeed=Va, course=np.inf, cost=0, parent=j, connect_to_goal=0)
     smooth_waypoints.add(column(waypoints.ned, waypoints.num_waypoints-1), airspeed=Va, course=np.inf, cost=0, parent=j, connect_to_goal=1)
     
