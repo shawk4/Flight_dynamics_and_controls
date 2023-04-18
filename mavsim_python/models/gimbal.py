@@ -38,10 +38,12 @@ class Gimbal:
 
         ##### TODO #####
         # compute control inputs to align gimbal
-        
+        azimuth_c = np.arctan2(ell.item(1), ell.item(0))
+        elevation_c = np.arcsin(ell.item(2))
         # proportional control for gimbal
-        u_az = 0
-        u_el = 0
+
+        u_az = CAM.k_az*(azimuth_c - azimuth)
+        u_el = CAM.k_el*(elevation_c - elevation)
         return( np.array([[u_az], [u_el]]) )
 
 
